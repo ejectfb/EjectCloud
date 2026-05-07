@@ -14,6 +14,8 @@
     const $fileInput = document.getElementById('fileInput');
     const $filesList = document.getElementById('filesList');
     const $filesContainer = document.querySelector('.files-container');
+    const $fileArea = document.getElementById('fileArea');
+    const $dropzoneOverlay = document.getElementById('dropzoneOverlay');
 
     const $drawerBackdrop = document.getElementById('drawerBackdrop');
     const $menuBtn = document.getElementById('menuBtn');
@@ -1057,6 +1059,97 @@
         
         this.value = ''; // Очищаем input
     });
+
+    let _dragCounter = 0;
+    let _fileAreaRef = null;
+    let _overlayRef = null;
+
+    function _showDropzone() {
+        if (_dragCounter > 0) return;
+        _dragCounter = 1;
+        if (_fileAreaRef) _fileAreaRef.classList.add('drag-over');
+        if (_overlayRef) _overlayRef.classList.add('active');
+    }
+
+    function _hideDropzone() {
+        _dragCounter = 0;
+        if (_fileAreaRef) _fileAreaRef.classList.remove('drag-over');
+        if (_overlayRef) _overlayRef.classList.remove('active');
+    }
+
+    function _processDroppedFiles(files) {
+        if (files.length === 0) return;
+
+        const token = getAuthToken();
+        fetch(`/api/files/quota?token=${encodeURIComponent(token)}`)
+            .then(r => r.json())
+            .then(quotaInfo => {
+                const filesToUpload = [];
+                const rejectedFiles = [];
+                let totalSize = 0;
+
+                Array.from(files).forEach(file => {
+                    totalSize += file.size;
+                    if (quotaInfo.remaining >= totalSize) {
+                        filesToUpload.push(file);
+                    } else {
+                        rejectedFiles.push(file);
+                    }
+                });
+
+                if (rejectedFiles.length > 0) {
+                    const rejectedNames = rejectedFiles.map(f => f.name).join(', ');
+                    showNotification(`Файлы не загружены (недостаточно места): ${rejectedNames}`, 'warning');
+                }
+
+                if (filesToUpload.length > 0) {
+                    filesToUpload.forEach(file => {
+                        uploadQueue.push({ file, path: currentPath });
+                        uploadTotalBytes += file.size;
+                    });
+
+                    showUploadProgress();
+
+                    if (!isUploading) {
+                        processUploadQueue();
+                    }
+                }
+            })
+            .catch(err => showNotification('Ошибка проверки квоты: ' + err.message, 'error'));
+    }
+
+    document.addEventListener('dragenter', function(e) {
+        if (isInTrash) return;
+        const hasFiles = Array.from(e.dataTransfer.types).includes('Files');
+        if (!hasFiles) return;
+        e.preventDefault();
+        _showDropzone();
+    }, false);
+
+    document.addEventListener('dragover', function(e) {
+        if (isInTrash) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    }, false);
+
+    document.addEventListener('dragleave', function(e) {
+        if (isInTrash) return;
+        if (e.relatedTarget !== null && document.contains(e.relatedTarget)) return;
+        e.preventDefault();
+        _hideDropzone();
+    }, false);
+
+    document.addEventListener('drop', function(e) {
+        if (isInTrash) return;
+        const hasFiles = Array.from(e.dataTransfer.types).includes('Files');
+        if (!hasFiles) return;
+        e.preventDefault();
+        _hideDropzone();
+        _processDroppedFiles(e.dataTransfer.files);
+    }, false);
+
+    _fileAreaRef = $fileArea;
+    _overlayRef = $dropzoneOverlay;
     
     function processUploadQueue() {
         if (uploadQueue.length === 0) {

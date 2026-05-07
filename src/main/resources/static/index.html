@@ -5,6 +5,7 @@
     <title>EjectCloud</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
+    <link rel="stylesheet" href="dropzone.css">
     <style>
         :root {
             --ec-accent: #db9215;
@@ -1038,8 +1039,16 @@
             </div>
         </div>
         
-            <div class="file-area">
-            <!-- Панель групповых операций (over breadcrumbs) -->
+            <div class="file-area" id="fileArea">
+                <div class="dropzone-overlay" id="dropzoneOverlay">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">📤</div>
+                        <div class="dropzone-title">Перетащите файлы сюда</div>
+                        <div class="dropzone-hint">Файлы будут загружены в текущую папку</div>
+                    </div>
+                </div>
+
+                <!-- Панель групповых операций (over breadcrumbs) -->
             <div id="bulkActions" class="bulk-actions" style="display: none;">
                 <div class="bulk-info">
                     <span id="selectedCount">0</span> выбрано
