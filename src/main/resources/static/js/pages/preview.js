@@ -14,6 +14,15 @@
     const $fileUploaded = document.getElementById('fileUploaded');
     const $actions = document.getElementById('actions');
     const $preview = document.getElementById('preview');
+    const $qrModal = document.getElementById('qrModal');
+    const $qrContainer = document.getElementById('qrCodeContainer');
+    const $qrUrl = document.getElementById('qrShareUrl');
+    const $qrCopyBtn = document.getElementById('qrCopyBtn');
+    const $qrDeleteShareBtn = document.getElementById('qrDeleteShareBtn');
+    const $qrCloseBtn = document.getElementById('qrCloseBtn');
+    const $qrCloseX = document.getElementById('qrCloseX');
+
+    let currentShareUrl = '';
 
     function toast(msg) {
         $toast.textContent = msg;
@@ -94,6 +103,52 @@
         }
     }
 
+    function showQRModal(shareUrl) {
+        currentShareUrl = shareUrl;
+        $qrContainer.innerHTML = '';
+        $qrUrl.textContent = shareUrl;
+
+        new QRCode($qrContainer, {
+            text: shareUrl,
+            width: 256,
+            height: 256,
+            colorDark: '#2c3e50',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        $qrModal.style.display = 'block';
+        $qrModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeQRModal() {
+        $qrModal.style.display = 'none';
+        $qrModal.setAttribute('aria-hidden', 'true');
+        $qrContainer.innerHTML = '';
+        currentShareUrl = '';
+    }
+
+    async function openShareModal() {
+        const res = await fetchWithRefresh(apiUrl('/api/files/share?fileId=' + encodeURIComponent(fileId)), { method: 'POST' });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            toast('Ошибка ссылки');
+            return;
+        }
+        showQRModal(window.location.origin + (j.shareUrl || ''));
+    }
+
+    async function deleteShareLink() {
+        if (!confirm('Удалить ссылку на файл?')) return;
+        const res = await fetchWithRefresh(apiUrl('/api/files/share?fileId=' + encodeURIComponent(fileId)), { method: 'DELETE' });
+        if (!res.ok) {
+            toast('Ошибка удаления ссылки');
+            return;
+        }
+        closeQRModal();
+        toast('Ссылка удалена');
+    }
+
     async function loadInfo() {
         if (!fileId) {
             $preview.innerHTML = '<div class="hint">Файл не выбран</div>';
@@ -118,22 +173,11 @@
         const token = getToken();
 
         const downloadUrl = '/api/files/download?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
-        const shareUrl = '/api/files/share?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
-
         $actions.appendChild(makeBtn('Скачать', 'primary', () => {
             window.location.href = downloadUrl;
         }));
 
-        $actions.appendChild(makeBtn('Поделиться', 'light', async () => {
-            const res = await fetchWithRefresh(shareUrl, { method: 'POST' });
-            const j = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                toast('Ошибка ссылки');
-                return;
-            }
-            const full = window.location.origin + (j.shareUrl || '');
-            await copyText(full);
-        }));
+        $actions.appendChild(makeBtn('Поделиться', 'light', openShareModal));
 
         $actions.appendChild(makeBtn('Переименовать', 'light', async () => {
             const currentName = (info && info.filename) ? info.filename : (fileId.split('/').pop());
@@ -268,6 +312,14 @@
             history.back();
         }
     };
+
+    $qrCopyBtn.onclick = () => copyText(currentShareUrl);
+    $qrDeleteShareBtn.onclick = deleteShareLink;
+    $qrCloseBtn.onclick = closeQRModal;
+    $qrCloseX.onclick = closeQRModal;
+    $qrModal.addEventListener('click', (e) => {
+        if (e.target === $qrModal) closeQRModal();
+    });
 
     (async () => {
         const info = await loadInfo();

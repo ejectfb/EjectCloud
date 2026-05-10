@@ -1,0 +1,8 @@
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .form-group { margin: 10px 0; }
+        input, button { padding: 5px; margin: 2px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+    
