@@ -798,6 +798,37 @@
             background: rgba(0,0,0,0.45);
             z-index: 1190;
         }
+
+        #qrModal .modal-content {
+            max-width: 360px;
+        }
+
+        #qrCodeContainer {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        #qrCodeContainer img,
+        #qrCodeContainer canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        #qrShareUrl {
+            word-break: break-all;
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
         
         @media (max-width: 768px) {
             body {
@@ -1153,6 +1184,24 @@
     </div>
 </div>
 
+<!-- Модальное окно QR-кода -->
+<div id="qrModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">📱 QR-код для скачивания</div>
+            <span class="close" onclick="closeQRModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="qrCodeContainer"></div>
+            <div id="qrShareUrl"></div>
+            <div class="modal-buttons">
+                <button onclick="closeQRModal()" class="secondary">Закрыть</button>
+                <button onclick="copyQRUrl()" class="primary">📋 Копировать ссылку</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Центр задач -->
 <div id="taskBackdrop" class="task-backdrop hidden"></div>
 <button id="taskBubble" class="task-bubble" title="Задачи">
@@ -1171,6 +1220,7 @@
 </aside>
 
 <script src="task-center.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

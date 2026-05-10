@@ -200,6 +200,7 @@
             const fileObj = allFiles.find(f => f.id === id);
             if (fileObj && fileObj.shared && fileObj.shareExpiresAt) {
                 addActionButton('📋 Копировать текущую ссылку', 'secondary', () => copyExistingShare(id));
+                addActionButton('📱 QR-код', 'secondary', () => showQRForFile(id));
                 addActionButton('× Удалить ссылку', 'secondary', () => deleteShareLink(id));
             }
 
@@ -955,6 +956,7 @@
                 shareCell.innerHTML = `
                     <div class="share-cell">
                         <button onclick="copyExistingShare('${file.id}')" class="secondary" title="Копировать ссылку">📋</button>
+                        <button onclick="showQRForFile('${file.id}')" class="secondary" title="QR-код">📱</button>
                         <span class="share-time" onclick="copyExistingShare('${file.id}')" title="Кликните для копирования">🔗 ${timeLeft}</span>
                         <button onclick="deleteShareLink('${file.id}')" class="secondary" title="Удалить ссылку" style="padding: 2px 8px; font-size: 16px;">×</button>
                     </div>
@@ -1551,6 +1553,73 @@
             .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
         });
     };
+
+    let currentQRUrl = '';
+    let qrInstance = null;
+
+    window.showQRModal = function(shareUrl) {
+        currentQRUrl = shareUrl;
+        const $qrModal = document.getElementById('qrModal');
+        const $qrContainer = document.getElementById('qrCodeContainer');
+        const $qrUrl = document.getElementById('qrShareUrl');
+
+        $qrContainer.innerHTML = '';
+        $qrUrl.textContent = shareUrl;
+
+        qrInstance = new QRCode($qrContainer, {
+            text: shareUrl,
+            width: 256,
+            height: 256,
+            colorDark: '#2c3e50',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        $qrModal.style.display = 'block';
+    };
+
+    window.closeQRModal = function() {
+        const $qrModal = document.getElementById('qrModal');
+        const $qrContainer = document.getElementById('qrCodeContainer');
+        $qrModal.style.display = 'none';
+        $qrContainer.innerHTML = '';
+        qrInstance = null;
+        currentQRUrl = '';
+    };
+
+    window.copyQRUrl = function() {
+        copyTextOrPrompt(currentQRUrl, 'Ссылка для скачивания:').then((ok) => {
+            if (ok) {
+                showNotification('Ссылка скопирована в буфер обмена', 'success');
+            }
+        });
+    };
+
+    window.showQRForFile = function(fileId) {
+        const token = getAuthToken();
+        fetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+            method: 'POST'
+        })
+        .then(async r => {
+            if (!r.ok) {
+                const text = await r.text();
+                try {
+                    const errorData = JSON.parse(text);
+                    throw new Error(errorData.error || 'Ошибка сервера');
+                } catch {
+                    throw new Error(text || 'Ошибка сервера');
+                }
+            }
+            return r.json();
+        })
+        .then(data => {
+            const shareUrl = window.location.origin + data.shareUrl;
+            showQRModal(shareUrl);
+        })
+        .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+    };
+
+    window.closeQRModal();
 
     window.deleteFile = function(fileId) {
         const fileName = fileId.split('/').pop();
