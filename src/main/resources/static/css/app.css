@@ -324,7 +324,7 @@
         
         button {
             padding: 10px 18px;
-            border: none;
+            border: 2px solid transparent;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
@@ -336,44 +336,52 @@
         }
         
         button.primary {
-            background: linear-gradient(135deg, #f5c842 0%, #f7d468 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(245, 200, 66, 0.3);
+            background: white;
+            border-color: #db9215;
+            color: #9a6208;
+            box-shadow: 0 4px 14px rgba(219, 146, 21, 0.16);
         }
         
         button.primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 200, 66, 0.4);
+            background: #fff8ec;
+            box-shadow: 0 6px 18px rgba(219, 146, 21, 0.24);
         }
         
         button.secondary {
-            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-            color: white;
+            background: white;
+            border-color: #7f8c8d;
+            color: #5f6b6c;
         }
         
         button.secondary:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(127, 140, 141, 0.3);
+            background: #f7f9f9;
+            box-shadow: 0 4px 12px rgba(127, 140, 141, 0.2);
         }
         
         button.danger {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
+            background: white;
+            border-color: #e74c3c;
+            color: #c0392b;
         }
         
         button.danger:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+            background: #fff4f2;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
         }
         
         button.success {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            color: white;
+            background: white;
+            border-color: #27ae60;
+            color: #1f8d4e;
         }
         
         button.success:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+            background: #f0fff6;
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
         }
         
         .quota-display {
@@ -892,12 +900,12 @@
             }
 
             #taskBubble {
-                width: 116px;
-                height: 34px;
+                width: 86px;
+                height: 28px;
             }
 
             #taskBubble .pct {
-                font-size: 13px;
+                font-size: 11px;
             }
 
             /* Row 1 icons only */

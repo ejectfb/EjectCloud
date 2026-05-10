@@ -689,7 +689,7 @@
                     <button onclick="event.stopPropagation(); downloadFolderArchive('${folder}')" class="primary" title="Скачать папку">${iconHtml('download')}</button>
                     <button onclick="event.stopPropagation(); renameFolder('${folder}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
                     <button onclick="event.stopPropagation(); deleteFolder('${folder}')" class="danger" title="Удалить папку">${iconHtml('trash')}</button>
-                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">${iconHtml('delete-forever')}</button>
+                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно">${iconHtml('delete-forever')}</button>
                 </div>
             `;
 
@@ -750,7 +750,7 @@
                     <button onclick="renameFile('${file.id}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
                     <button onclick="moveFileDialog('${file.id}')" class="secondary" title="Переместить">${iconHtml('move')}</button>
                     <button onclick="deleteFile('${file.id}')" class="danger" title="Удалить">${iconHtml('trash')}</button>
-                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">${iconHtml('delete-forever')}</button>
+                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно">${iconHtml('delete-forever')}</button>
                 </div>
             `;
         });

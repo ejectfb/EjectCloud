@@ -39,23 +39,25 @@
             font-weight: 700;
         }
         .btn.primary {
-            background: linear-gradient(135deg, var(--ec-accent) 0%, var(--ec-accent2) 100%);
-            color: white;
-            box-shadow: 0 10px 20px rgba(219, 146, 21, 0.25);
+            background: white;
+            color: #9a6208;
+            border: 2px solid var(--ec-accent);
+            box-shadow: 0 8px 18px rgba(219, 146, 21, 0.16);
         }
         .btn.secondary {
-            background: rgba(255,255,255,0.18);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.28);
+            background: white;
+            color: #5f6b6c;
+            border: 2px solid #7f8c8d;
         }
         .btn.light {
-            background: rgba(255,255,255,0.92);
+            background: white;
             color: var(--ec-ink);
-            border: 1px solid rgba(0,0,0,0.08);
+            border: 2px solid rgba(0,0,0,0.12);
         }
         .btn.danger {
-            background: rgba(231, 76, 60, 0.95);
-            color: white;
+            background: white;
+            color: #c0392b;
+            border: 2px solid #e74c3c;
         }
 
         .wrap { padding: 14px; }
