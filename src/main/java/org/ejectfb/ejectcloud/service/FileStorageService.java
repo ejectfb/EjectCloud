@@ -287,26 +287,51 @@ public class FileStorageService {
             throw new IllegalStateException(isFolder ? "Папка не найдена" : "Файл не найден");
         }
         
-        // Проверяем, есть ли уже такой файл в корзине
         Path trashDir = getUserDir(telegramId).resolve("trash");
         Path trashPath = trashDir.resolve(itemPath);
         
         if (Files.exists(trashPath)) {
-            throw new IllegalStateException(isFolder ? "Папка с таким именем уже есть в корзине" : "Файл с таким именем уже есть в корзине");
+            trashPath = generateUniqueTrashPath(trashDir, itemPath, isFolder);
         }
         
-        // Удаляем ссылки на файлы
         removeSharesForPath(telegramId, itemPath, isFolder);
         
-        // Перемещаем в корзину с сохранением структуры
         Files.createDirectories(trashDir);
         
-        // Создаем родительские папки в корзине
         if (trashPath.getParent() != null) {
             Files.createDirectories(trashPath.getParent());
         }
         
         Files.move(sourcePath, trashPath);
+    }
+    
+    private Path generateUniqueTrashPath(Path trashDir, String originalPath, boolean isFolder) throws IOException {
+        Path candidate = trashDir.resolve(originalPath);
+        String baseName;
+        String extension = "";
+        
+        if (!isFolder) {
+            String fileName = candidate.getFileName().toString();
+            int lastDot = fileName.lastIndexOf('.');
+            if (lastDot > 0) {
+                baseName = fileName.substring(0, lastDot);
+                extension = fileName.substring(lastDot);
+            } else {
+                baseName = fileName;
+            }
+        } else {
+            baseName = candidate.getFileName().toString();
+        }
+        
+        int counter = 1;
+        while (Files.exists(candidate)) {
+            String newName = baseName + " (" + counter + ")" + extension;
+            Path parent = candidate.getParent();
+            candidate = parent.resolve(newName);
+            counter++;
+        }
+        
+        return candidate;
     }
     
     private void removeSharesForPath(String telegramId, String itemPath, boolean isFolder) {
@@ -396,28 +421,79 @@ public class FileStorageService {
         }
     }
     
+    public void permanentDeleteFile(String telegramId, String fileId) throws IOException {
+        Path filePath = getUserDir(telegramId).resolve("data").resolve(fileId);
+        if (!Files.exists(filePath)) {
+            throw new IllegalStateException("Файл не найден");
+        }
+        
+        removeSharesForPath(telegramId, fileId, Files.isDirectory(filePath));
+        
+        if (Files.isDirectory(filePath)) {
+            Files.walk(filePath)
+                .sorted((a, b) -> b.compareTo(a))
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                });
+        } else {
+            Files.delete(filePath);
+        }
+    }
+    
     public void restoreFromTrash(String telegramId, String itemId) throws IOException {
         Path trashPath = getUserDir(telegramId).resolve("trash").resolve(itemId);
         if (!Files.exists(trashPath)) {
             throw new IllegalStateException("Элемент не найден в корзине");
         }
         
+        boolean isFolder = Files.isDirectory(trashPath);
         Path dataPath = getUserDir(telegramId).resolve("data").resolve(itemId);
         
-        // Создаем родительские папки если нужно
         if (dataPath.getParent() != null && !dataPath.getParent().equals(getUserDir(telegramId).resolve("data"))) {
             Files.createDirectories(dataPath.getParent());
         }
         
-        // Проверяем, что целевой файл не существует
         if (Files.exists(dataPath)) {
-            throw new IllegalStateException("Файл с таким именем уже существует");
+            Path dataDir = getUserDir(telegramId).resolve("data");
+            dataPath = generateUniqueRestorePath(dataDir, itemId, isFolder);
         }
         
         Files.move(trashPath, dataPath);
         
-        // Удаляем пустые папки в корзине
         cleanupEmptyTrashFolders(telegramId, itemId);
+    }
+    
+    private Path generateUniqueRestorePath(Path baseDataDir, String originalItemId, boolean isFolder) throws IOException {
+        Path candidate = baseDataDir.resolve(originalItemId);
+        String baseName;
+        String extension = "";
+        
+        if (!isFolder) {
+            String fileName = candidate.getFileName().toString();
+            int lastDot = fileName.lastIndexOf('.');
+            if (lastDot > 0) {
+                baseName = fileName.substring(0, lastDot);
+                extension = fileName.substring(lastDot);
+            } else {
+                baseName = fileName;
+            }
+        } else {
+            baseName = candidate.getFileName().toString();
+        }
+        
+        int counter = 1;
+        while (Files.exists(candidate)) {
+            String newName = baseName + " (восстановленный " + counter + ")" + extension;
+            Path parent = candidate.getParent();
+            candidate = parent.resolve(newName);
+            counter++;
+        }
+        
+        return candidate;
     }
     
     private void cleanupEmptyTrashFolders(String telegramId, String restoredItemId) {

@@ -190,6 +190,7 @@
             addActionButton('⬇️ Скачать папку', 'primary', () => downloadFolderArchive(id));
             addActionButton('✏️ Переименовать', 'secondary', () => renameFolder(id));
             addActionButton('🗑️ Удалить папку', 'danger', () => deleteFolder(id));
+            addActionButton('🔥 Удалить безвозвратно', 'danger', () => permanentDeleteFolder(id));
         } else {
             // file
             addActionButton('👁️ Предпросмотр', 'secondary', () => openPreview(id));
@@ -205,6 +206,7 @@
             addActionButton('✏️ Переименовать', 'secondary', () => renameFile(id));
             addActionButton('📁 Переместить', 'secondary', () => moveFileDialog(id));
             addActionButton('🗑️ Удалить', 'danger', () => deleteFile(id));
+            addActionButton('🔥 Удалить безвозвратно', 'danger', () => permanentDeleteFile(id));
         }
 
         $actionsModal.style.display = 'block';
@@ -908,6 +910,7 @@
                     <button onclick="event.stopPropagation(); downloadFolderArchive('${folder}')" class="primary" title="Скачать папку">⬇️</button>
                     <button onclick="event.stopPropagation(); renameFolder('${folder}')" class="secondary" title="Переименовать">✏️</button>
                     <button onclick="event.stopPropagation(); deleteFolder('${folder}')" class="danger" title="Удалить папку">🗑️</button>
+                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">🔥</button>
                 </div>
             `;
 
@@ -970,6 +973,7 @@
                     <button onclick="renameFile('${file.id}')" class="secondary" title="Переименовать">✏️</button>
                     <button onclick="moveFileDialog('${file.id}')" class="secondary" title="Переместить">📁</button>
                     <button onclick="deleteFile('${file.id}')" class="danger" title="Удалить">🗑️</button>
+                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">🔥</button>
                 </div>
             `;
         });
@@ -1557,6 +1561,38 @@
             })
             .then(r => {
                 if (!r.ok) throw new Error('Ошибка удаления');
+                loadFiles();
+            })
+            .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+        });
+    };
+    
+    window.permanentDeleteFile = function(fileId) {
+        const fileName = fileId.split('/').pop();
+        showConfirm(`Удалить файл "${fileName}" БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
+            const token = getAuthToken();
+            fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+                method: 'DELETE'
+            })
+            .then(r => {
+                if (!r.ok) throw new Error('Ошибка удаления');
+                showNotification(`Файл "${fileName}" удалён безвозвратно`, 'success');
+                loadFiles();
+            })
+            .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+        });
+    };
+    
+    window.permanentDeleteFolder = function(folderPath) {
+        const folderName = folderPath.split('/').pop();
+        showConfirm(`Удалить папку "${folderName}" и ВСЕ содержимое БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
+            const token = getAuthToken();
+            fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
+                method: 'DELETE'
+            })
+            .then(r => {
+                if (!r.ok) throw new Error('Ошибка удаления');
+                showNotification(`Папка "${folderName}" удалена безвозвратно`, 'success');
                 loadFiles();
             })
             .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
@@ -2207,6 +2243,40 @@
                     const success = responses.filter(r => r.ok);
                     if (success.length > 0) {
                         showNotification(`${success.length} элементов перемещено в корзину`, 'success');
+                    }
+                    if (failed.length > 0) {
+                        showNotification(`Ошибка удаления ${failed.length} элементов`, 'error');
+                    }
+
+                    clearSelection();
+                    loadFiles();
+                })
+                .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+        });
+    };
+
+    window.bulkPermanentDelete = function() {
+        const files = selectedByKind('file');
+        const folders = selectedByKind('folder');
+        const total = files.length + folders.length;
+        if (total === 0) return;
+
+        showConfirm(`Удалить ${total} элементов БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
+            const token = getAuthToken();
+            const promises = [];
+            files.forEach(fileId => {
+                promises.push(fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+            });
+            folders.forEach(folderPath => {
+                promises.push(fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+            });
+
+            Promise.all(promises.map(p => p.catch(e => ({ error: true, message: e.message }))))
+                .then(responses => {
+                    const failed = responses.filter(r => !r.ok && r.error !== true);
+                    const success = responses.filter(r => r.ok);
+                    if (success.length > 0) {
+                        showNotification(`${success.length} элементов удалено безвозвратно`, 'success');
                     }
                     if (failed.length > 0) {
                         showNotification(`Ошибка удаления ${failed.length} элементов`, 'error');

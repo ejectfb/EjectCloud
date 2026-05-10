@@ -495,6 +495,17 @@ public class FileController {
         }
     }
     
+    @DeleteMapping("/permanent-delete")
+    public ResponseEntity<?> permanentDelete(@RequestParam String id, @RequestParam String token) {
+        String userId = requireUserId(token);
+        try {
+            storageService.permanentDeleteFile(userId, id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+    
     @PostMapping("/move")
     public ResponseEntity<?> moveFile(@RequestParam String fileId, 
                                      @RequestParam String targetFolder, 
