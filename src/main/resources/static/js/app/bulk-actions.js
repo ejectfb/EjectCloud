@@ -214,7 +214,7 @@
 
         const rootItem = document.createElement('div');
         rootItem.className = 'folder-item selected';
-        rootItem.textContent = '🏠 Хранилище';
+        rootItem.innerHTML = `${iconHtml('home')} Хранилище`;
         rootItem.onclick = () => selectTargetFolder('', rootItem);
         folderTree.appendChild(rootItem);
 
@@ -223,7 +223,7 @@
             item.className = 'folder-item';
             const depth = folder.split('/').length - 1;
             item.style.paddingLeft = (20 + depth * 15) + 'px';
-            item.textContent = '📁 ' + folder.split('/').pop();
+            item.innerHTML = `${iconHtml('folder')} ${folder.split('/').pop()}`;
             item.onclick = () => selectTargetFolder(folder, item);
             folderTree.appendChild(item);
         });

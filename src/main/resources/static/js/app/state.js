@@ -45,6 +45,10 @@
         return kind + ':' + id;
     }
 
+    function iconHtml(name, className = '') {
+        return `<img class="icon ${className}" src="icons/${name}.svg" alt="" aria-hidden="true">`;
+    }
+
     function parseItemKey(key) {
         const idx = key.indexOf(':');
         if (idx === -1) return { kind: 'file', id: key };
@@ -174,37 +178,37 @@
 
         if (kind === 'file') {
             const fileName = id.includes('/') ? id.split('/').pop() : id;
-            title = `📄 ${fileName}`;
+            title = fileName;
         } else if (kind === 'folder') {
             const folderName = id.includes('/') ? id.split('/').pop() : id;
-            title = `📁 ${folderName}`;
+            title = folderName;
         }
         if (inTrashNow) title += ' (Корзина)';
         $actionsTitle.textContent = title;
 
         if (inTrashNow) {
-            addActionButton('↩️ Восстановить', 'success', () => restoreFromTrash(id));
-            addActionButton('🗑️ Удалить навсегда', 'danger', () => deleteFromTrash(id));
+            addActionButton('Восстановить', 'success', () => restoreFromTrash(id));
+            addActionButton('Удалить навсегда', 'danger', () => deleteFromTrash(id));
         } else if (kind === 'folder') {
-            addActionButton('⬇️ Скачать папку', 'primary', () => downloadFolderArchive(id));
-            addActionButton('✏️ Переименовать', 'secondary', () => renameFolder(id));
-            addActionButton('🗑️ Удалить папку', 'danger', () => deleteFolder(id));
-            addActionButton('🔥 Удалить безвозвратно', 'danger', () => permanentDeleteFolder(id));
+            addActionButton('Скачать папку', 'primary', () => downloadFolderArchive(id));
+            addActionButton('Переименовать', 'secondary', () => renameFolder(id));
+            addActionButton('Удалить папку', 'danger', () => deleteFolder(id));
+            addActionButton('Удалить безвозвратно', 'danger', () => permanentDeleteFolder(id));
         } else {
             // file
-            addActionButton('👁️ Предпросмотр', 'secondary', () => openPreview(id));
-            addActionButton('⬇️ Скачать', 'primary', () => downloadFile(id));
-            addActionButton('🔗 Поделиться', 'secondary', () => shareFile(id));
+            addActionButton('Предпросмотр', 'secondary', () => openPreview(id));
+            addActionButton('Скачать', 'primary', () => downloadFile(id));
+            addActionButton('Поделиться', 'secondary', () => shareFile(id));
 
             const fileObj = allFiles.find(f => f.id === id);
             if (fileObj && fileObj.shared && fileObj.shareExpiresAt) {
-                addActionButton('× Удалить ссылку', 'secondary', () => deleteShareLink(id));
+                addActionButton('Удалить ссылку', 'secondary', () => deleteShareLink(id));
             }
 
-            addActionButton('✏️ Переименовать', 'secondary', () => renameFile(id));
-            addActionButton('📁 Переместить', 'secondary', () => moveFileDialog(id));
-            addActionButton('🗑️ Удалить', 'danger', () => deleteFile(id));
-            addActionButton('🔥 Удалить безвозвратно', 'danger', () => permanentDeleteFile(id));
+            addActionButton('Переименовать', 'secondary', () => renameFile(id));
+            addActionButton('Переместить', 'secondary', () => moveFileDialog(id));
+            addActionButton('Удалить', 'danger', () => deleteFile(id));
+            addActionButton('Удалить безвозвратно', 'danger', () => permanentDeleteFile(id));
         }
 
         $actionsModal.style.display = 'block';

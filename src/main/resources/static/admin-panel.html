@@ -5,6 +5,7 @@
     <title>EjectCloud - Админ панель</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
+    <link rel="stylesheet" href="css/icons.css">
     <link rel="stylesheet" href="css/admin-panel.css">
 </head>
 <body>
@@ -18,11 +19,11 @@
 <div id="app" class="hidden">
     <div class="sidebar">
         <div class="sidebar-header">
-            🔧 Админ панель
+            <span class="icon-text"><img class="icon" src="icons/admin.svg" alt="" aria-hidden="true">Админ панель</span>
         </div>
-        <div class="nav-item active" onclick="showTab('dashboard')">📊 Дашборд</div>
-        <div class="nav-item" onclick="showTab('users')">👥 Пользователи</div>
-        <div class="nav-item" onclick="showTab('monitoring')">📈 Мониторинг</div>
+        <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon-text"><img class="icon" src="icons/dashboard.svg" alt="" aria-hidden="true">Дашборд</span></div>
+        <div class="nav-item" onclick="showTab('users')"><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></div>
+        <div class="nav-item" onclick="showTab('monitoring')"><span class="icon-text"><img class="icon" src="icons/monitoring.svg" alt="" aria-hidden="true">Мониторинг</span></div>
     </div>
 
     <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
@@ -36,7 +37,7 @@
             <div class="toolbar-right">
                 <span id="who"></span>
                 <span id="timer"></span>
-                <button onclick="openUserInterface()" class="primary">🏠 Пользовательский интерфейс</button>
+                <button onclick="openUserInterface()" class="primary"><img class="icon" src="icons/home.svg" alt="" aria-hidden="true">Пользовательский интерфейс</button>
                 <button onclick="logout()" class="danger">Выход</button>
             </div>
         </div>
@@ -46,7 +47,7 @@
             <div id="tab-dashboard">
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3>💾 Дисковое пространство</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/disk.svg" alt="" aria-hidden="true">Дисковое пространство</span></h3>
                         <div class="metric">
                             <span>Всего:</span>
                             <span class="metric-value" id="totalDisk">-</span>
@@ -65,7 +66,7 @@
                     </div>
                     
                     <div class="card">
-                        <h3>🖥️ Система</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/cpu.svg" alt="" aria-hidden="true">Система</span></h3>
                         <div class="metric">
                             <span>CPU:</span>
                             <span class="metric-value" id="cpuUsage">-</span>
@@ -81,7 +82,7 @@
                     </div>
                     
                     <div class="card">
-                        <h3>👥 Квоты пользователей</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/quota.svg" alt="" aria-hidden="true">Квоты пользователей</span></h3>
                         <div class="metric">
                             <span>Общая квота:</span>
                             <span class="metric-value" id="totalQuota">-</span>
@@ -97,7 +98,7 @@
                 </div>
                 
                 <div class="card">
-                    <h3>📊 Топ пользователей по использованию</h3>
+                    <h3><span class="icon-text"><img class="icon" src="icons/chart.svg" alt="" aria-hidden="true">Топ пользователей по использованию</span></h3>
                     <div class="table-wrap">
                     <table id="topUsersTable">
                         <thead>
@@ -136,7 +137,7 @@
                             <label class="form-label">Квота (MB)</label>
                             <input id="newQuota" type="number" value="1024" />
                         </div>
-                        <button onclick="createUser()" class="primary">➕ Создать</button>
+                        <button onclick="createUser()" class="primary"><img class="icon" src="icons/add-user.svg" alt="" aria-hidden="true">Создать</button>
                     </div>
                 </div>
                 
@@ -164,7 +165,7 @@
             <div id="tab-monitoring" class="hidden">
                 <div class="monitoring-grid">
                     <div class="card">
-                        <h3>📈 CPU Usage</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/cpu.svg" alt="" aria-hidden="true">CPU Usage</span></h3>
                         <div style="margin-bottom: 15px;">
                             <select id="cpuPeriod" onchange="loadHistory(this.value, 'cpu')">
                                 <option value="5m">5 минут</option>
@@ -185,7 +186,7 @@
                     </div>
                     
                     <div class="card">
-                        <h3>💾 Memory Usage</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/memory.svg" alt="" aria-hidden="true">Memory Usage</span></h3>
                         <div style="margin-bottom: 15px;">
                             <select id="memoryPeriod" onchange="loadHistory(this.value, 'memory')">
                                 <option value="5m">5 минут</option>
@@ -206,7 +207,7 @@
                     </div>
                     
                     <div class="card storage-full">
-                        <h3>💿 Storage Usage</h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/storage.svg" alt="" aria-hidden="true">Storage Usage</span></h3>
                         <div style="margin-bottom: 15px;">
                             <select id="storagePeriod" onchange="loadHistory(this.value, 'storage')">
                                 <option value="5m">5 минут</option>
@@ -235,7 +236,7 @@
 <div id="editUserModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title">✏️ Редактирование пользователя</div>
+            <div class="modal-title"><span class="icon-text"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">Редактирование пользователя</span></div>
             <span class="close" onclick="closeEditUserModal()">&times;</span>
         </div>
         <div class="modal-body">

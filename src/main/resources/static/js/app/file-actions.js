@@ -367,7 +367,7 @@
                 header.innerHTML = `
                     <div class="file-check"></div>
                     <div class="file-main">
-                        <div class="file-title" style="cursor: default;"><span class="icon-badge">🗑️</span> В корзине ${totalCount} элементов</div>
+                        <div class="file-title" style="cursor: default;"><span class="icon-badge">${iconHtml('trash')}</span> В корзине ${totalCount} элементов</div>
                         <div class="file-meta">Очистка удалит все навсегда</div>
                     </div>
                     <div class="file-actions">
@@ -422,7 +422,7 @@
                     В корзине ${trashFiles.length} элементов
                 </td>
                 <td>
-                    <button onclick="clearTrash()" class="danger" title="Очистить корзину">🗑️ Очистить все</button>
+                    <button onclick="clearTrash()" class="danger" title="Очистить корзину">${iconHtml('trash-clear')} Очистить все</button>
                 </td>
             `;
         }
@@ -435,7 +435,7 @@
             const cell = row.insertCell();
             cell.style.cursor = 'pointer';
             cell.style.color = '#007acc';
-            cell.textContent = '📁 ..';
+            cell.innerHTML = `${iconHtml('folder')} ..`;
             cell.onclick = () => selectTrashPath(parentPath);
             row.insertCell().textContent = '-';
             row.insertCell().textContent = '-';
@@ -451,7 +451,7 @@
             const cell = row.insertCell();
             cell.style.cursor = 'pointer';
             cell.style.color = '#007acc';
-            cell.textContent = '📁 ' + folderName;
+            cell.innerHTML = `${iconHtml('folder')} ${escapeHtml(folderName)}`;
             cell.onclick = () => selectTrashPath(folder);
             row.insertCell().textContent = '-';
             row.insertCell().textContent = '-';
@@ -462,7 +462,7 @@
             actionsDiv.className = 'action-buttons';
             
             const restoreBtn = document.createElement('button');
-            restoreBtn.innerHTML = '↩️';
+            restoreBtn.innerHTML = iconHtml('trash-restore');
             restoreBtn.title = 'Восстановить';
             restoreBtn.className = 'success';
             restoreBtn.onclick = (e) => {
@@ -471,7 +471,7 @@
             };
             
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.innerHTML = iconHtml('trash');
             deleteBtn.title = 'Удалить навсегда';
             deleteBtn.className = 'danger';
             deleteBtn.onclick = (e) => {
@@ -494,14 +494,14 @@
             
             row.innerHTML = `
                 <td></td>
-                <td>📄 ${itemName}</td>
+                <td>${iconHtml('file')} ${escapeHtml(itemName)}</td>
                 <td>${itemSize}</td>
                 <td>${itemDate}</td>
                 <td>-</td>
                 <td>
                     <div class="action-buttons">
-                        <button onclick="restoreFromTrash('${item.id}')" class="success" title="Восстановить">↩️</button>
-                        <button onclick="deleteFromTrash('${item.id}')" class="danger" title="Удалить навсегда">🗑️</button>
+                        <button onclick="restoreFromTrash('${item.id}')" class="success" title="Восстановить">${iconHtml('trash-restore')}</button>
+                        <button onclick="deleteFromTrash('${item.id}')" class="danger" title="Удалить навсегда">${iconHtml('trash')}</button>
                     </div>
                 </td>
             `;

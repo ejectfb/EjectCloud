@@ -116,19 +116,19 @@ function renderUsersMobile(users) {
 
         const editBtn = document.createElement('button');
         editBtn.className = 'primary';
-        editBtn.textContent = '✏️';
+        editBtn.innerHTML = '<img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">';
         editBtn.title = 'Редактировать';
         editBtn.onclick = () => openEditUserModal(user.id, user.email, user.displayName, user.telegramId, quotaMB);
 
         const resetBtn = document.createElement('button');
         resetBtn.className = 'secondary';
-        resetBtn.textContent = '🔑';
+        resetBtn.innerHTML = '<img class="icon" src="icons/key.svg" alt="" aria-hidden="true">';
         resetBtn.title = 'Сбросить пароль';
         resetBtn.onclick = () => resetPassword(user.id);
 
         const delBtn = document.createElement('button');
         delBtn.className = 'danger';
-        delBtn.textContent = '🗑️';
+        delBtn.innerHTML = '<img class="icon" src="icons/trash.svg" alt="" aria-hidden="true">';
         delBtn.title = 'Удалить';
         delBtn.onclick = () => deleteUser(user.id, user.displayName);
 
@@ -447,9 +447,9 @@ function loadUsers() {
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button onclick="openEditUserModal('${user.id}', '${user.email}', '${user.displayName}', '${user.telegramId}', ${quotaMB})" class="primary">✏️</button>
-                            <button onclick="resetPassword('${user.id}')" class="secondary">🔑</button>
-                            <button onclick="deleteUser('${user.id}', '${user.displayName}')" class="danger">🗑️</button>
+                            <button onclick="openEditUserModal('${user.id}', '${user.email}', '${user.displayName}', '${user.telegramId}', ${quotaMB})" class="primary"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="resetPassword('${user.id}')" class="secondary"><img class="icon" src="icons/key.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="deleteUser('${user.id}', '${user.displayName}')" class="danger"><img class="icon" src="icons/trash.svg" alt="" aria-hidden="true"></button>
                         </div>
                     </td>
                 `;

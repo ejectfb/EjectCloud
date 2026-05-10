@@ -196,7 +196,7 @@
             window.location.href = returnTo;
         }));
 
-        const delBtn = makeBtn('🗑️', 'danger icon-only', async () => {
+        const delBtn = makeBtn('', 'danger icon-only', async () => {
             if (!confirm('Переместить в корзину?')) return;
             const delUrl = '/api/files/delete?id=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
             const res = await fetchWithRefresh(delUrl, { method: 'DELETE' });
@@ -206,6 +206,7 @@
             }
             window.location.href = returnTo;
         });
+        delBtn.innerHTML = '<img class="icon" src="icons/trash.svg" alt="" aria-hidden="true">';
         delBtn.title = 'Удалить';
         $actions.appendChild(delBtn);
     }

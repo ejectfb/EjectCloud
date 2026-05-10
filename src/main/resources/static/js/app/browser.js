@@ -14,7 +14,7 @@
             back.innerHTML = `
                 <div class="file-check"></div>
                 <div class="file-main">
-                    <div class="file-title" title="Назад"><span class="icon-badge">📁</span> ..</div>
+                    <div class="file-title" title="Назад"><span class="icon-badge">${iconHtml('folder')}</span> ..</div>
                 </div>
                 <div class="file-actions"></div>
             `;
@@ -34,7 +34,7 @@
             item.innerHTML = `
                 <div class="file-check"></div>
                 <div class="file-main">
-                    <div class="file-title" title="Открыть папку"><span class="icon-badge">📁</span> ${escapeHtml(folderName)}</div>
+                    <div class="file-title" title="Открыть папку"><span class="icon-badge">${iconHtml('folder')}</span> ${escapeHtml(folderName)}</div>
                     <div class="file-meta">Папка</div>
                 </div>
                 <div class="file-actions">
@@ -72,7 +72,7 @@
             const size = fileObj.size !== undefined ? formatFileSize(fileObj.size) : ((fileObj.sizeBytes !== undefined && fileObj.sizeBytes !== null) ? formatFileSize(fileObj.sizeBytes) : '-');
             const date = new Date(fileObj.uploadedAt).toLocaleString();
 
-            const linkInfo = (!inTrashMode && fileObj.shared && fileObj.shareExpiresAt) ? `🔗 ${getTimeUntilExpiry(fileObj.shareExpiresAt)}` : '';
+            const linkInfo = (!inTrashMode && fileObj.shared && fileObj.shareExpiresAt) ? getTimeUntilExpiry(fileObj.shareExpiresAt) : '';
 
             const item = document.createElement('div');
             item.className = 'file-item';
@@ -89,11 +89,11 @@
                     ${inTrashMode ? '' : `<input type="checkbox" class="file-checkbox" ${checked ? 'checked' : ''} />`}
                 </div>
                 <div class="file-main">
-                    <div class="file-title" title="Открыть/скачать"><span class="icon-badge">📄</span> ${escapeHtml(fileName)}</div>
+                    <div class="file-title" title="Открыть/скачать"><span class="icon-badge">${iconHtml('file')}</span> ${escapeHtml(fileName)}</div>
                     <div class="file-meta">
                         <span>${escapeHtml(size)}</span>
                         <span>${escapeHtml(date)}</span>
-                        ${linkInfo ? `<span style="cursor:pointer; color:#007acc;" title="Открыть QR-код">${escapeHtml(linkInfo)}</span>` : ''}
+                        ${linkInfo ? `<span class="icon-text" style="cursor:pointer; color:#007acc;" title="Открыть QR-код">${iconHtml('share')}${escapeHtml(linkInfo)}</span>` : ''}
                     </div>
                 </div>
                 <div class="file-actions">
@@ -136,7 +136,7 @@
             empty.innerHTML = `
                 <div class="file-check"></div>
                 <div class="file-main">
-                    <div class="file-title" style="cursor: default;"><span class="icon-badge">ℹ️</span> ${inTrashMode ? 'Корзина пуста' : 'Папка пуста'}</div>
+                    <div class="file-title" style="cursor: default;"><span class="icon-badge">${iconHtml('info')}</span> ${inTrashMode ? 'Корзина пуста' : 'Папка пуста'}</div>
                 </div>
                 <div class="file-actions"></div>
             `;
@@ -194,7 +194,7 @@
         }
 
         if (inTrashMode) {
-            addCrumb('🗑️ Корзина', () => selectTrash());
+            addCrumb('Корзина', () => selectTrash());
             let acc = '';
             parts.forEach((p, idx) => {
                 addSep();
@@ -202,7 +202,7 @@
                 addCrumb(p, () => selectTrashPath(acc));
             });
         } else {
-            addCrumb('🏠 Хранилище', () => selectPath(''));
+            addCrumb('Хранилище', () => selectPath(''));
             let acc = '';
             parts.forEach((p, idx) => {
                 addSep();
@@ -285,7 +285,7 @@
         // Корень
         const rootItem = document.createElement('div');
         rootItem.className = 'folder-item selected';
-        rootItem.textContent = '🏠 Хранилище';
+        rootItem.innerHTML = `${iconHtml('home')} Хранилище`;
         rootItem.onclick = () => selectTargetFolder('', rootItem);
         folderTree.appendChild(rootItem);
         
@@ -295,7 +295,7 @@
             item.className = 'folder-item';
             const depth = folder.split('/').length - 1;
             item.style.paddingLeft = (20 + depth * 15) + 'px';
-            item.textContent = '📁 ' + folder.split('/').pop();
+            item.innerHTML = `${iconHtml('folder')} ${escapeHtml(folder.split('/').pop())}`;
             item.onclick = () => selectTargetFolder(folder, item);
             folderTree.appendChild(item);
         });
@@ -497,7 +497,7 @@
 
         const text = document.createElement('span');
         text.className = 'tree-label';
-        text.textContent = `${icon} ${label}`;
+        text.innerHTML = `${icon} ${escapeHtml(label)}`;
 
         row.appendChild(toggle);
         row.appendChild(text);
@@ -516,7 +516,7 @@
 
             const item = createTreeItem({
                 label: node.name,
-                icon: '📁',
+            icon: iconHtml('folder'),
                 depth,
                 selected: isSelected,
                 onClick: () => onSelectPath(node.path),
@@ -545,7 +545,7 @@
         // Storage root
         $fileTree.appendChild(createTreeItem({
             label: 'Хранилище',
-            icon: '🏠',
+            icon: iconHtml('home'),
             depth: 0,
             selected: (!isInTrash && currentPath === ''),
             onClick: () => selectPath(''),
@@ -559,7 +559,7 @@
         // Trash root
         $fileTree.appendChild(createTreeItem({
             label: 'Корзина',
-            icon: '🗑️',
+            icon: iconHtml('trash'),
             depth: 0,
             selected: (isInTrash && currentPath === ''),
             onClick: () => selectTrash(),
@@ -657,7 +657,7 @@
             const cell = row.insertCell();
             cell.style.cursor = 'pointer';
             cell.style.color = '#007acc';
-            cell.textContent = '📁 ..';
+            cell.innerHTML = `${iconHtml('folder')} ..`;
             cell.onclick = () => selectPath(parentPath);
             row.insertCell().textContent = '-';
             row.insertCell().textContent = '-';
@@ -677,7 +677,7 @@
             const cell = row.insertCell();
             cell.style.cursor = 'pointer';
             cell.style.color = '#007acc';
-            cell.textContent = '📁 ' + folderName;
+            cell.innerHTML = `${iconHtml('folder')} ${escapeHtml(folderName)}`;
             cell.onclick = () => selectPath(folder);
             row.insertCell().textContent = '-';
             row.insertCell().textContent = '-';
@@ -686,10 +686,10 @@
             const actionsCell = row.insertCell();
             actionsCell.innerHTML = `
                 <div class="action-buttons">
-                    <button onclick="event.stopPropagation(); downloadFolderArchive('${folder}')" class="primary" title="Скачать папку">⬇️</button>
-                    <button onclick="event.stopPropagation(); renameFolder('${folder}')" class="secondary" title="Переименовать">✏️</button>
-                    <button onclick="event.stopPropagation(); deleteFolder('${folder}')" class="danger" title="Удалить папку">🗑️</button>
-                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">🔥</button>
+                    <button onclick="event.stopPropagation(); downloadFolderArchive('${folder}')" class="primary" title="Скачать папку">${iconHtml('download')}</button>
+                    <button onclick="event.stopPropagation(); renameFolder('${folder}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
+                    <button onclick="event.stopPropagation(); deleteFolder('${folder}')" class="danger" title="Удалить папку">${iconHtml('trash')}</button>
+                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">${iconHtml('delete-forever')}</button>
                 </div>
             `;
 
@@ -714,7 +714,7 @@
             
             // Название файла
             const nameCell = row.insertCell();
-            nameCell.textContent = `📄 ${fileName}`;
+            nameCell.innerHTML = `${iconHtml('file')} ${escapeHtml(fileName)}`;
             nameCell.style.cursor = 'pointer';
             nameCell.title = 'Предпросмотр';
             nameCell.onclick = () => openPreview(file.id);
@@ -733,7 +733,7 @@
                 const timeLeft = getTimeUntilExpiry(file.shareExpiresAt);
                 shareCell.innerHTML = `
                     <div class="share-cell">
-                        <span class="share-time" onclick="showQRForFile('${file.id}')" title="Открыть QR-код">🔗 ${timeLeft}</span>
+                        <span class="share-time icon-text" onclick="showQRForFile('${file.id}')" title="Открыть QR-код">${iconHtml('share')}${timeLeft}</span>
                     </div>
                 `;
             } else {
@@ -744,13 +744,13 @@
             const actionsCell = row.insertCell();
             actionsCell.innerHTML = `
                 <div class="action-buttons">
-                    <button onclick="downloadFile('${file.id}')" class="primary" title="Скачать">⬇️</button>
-                    <button onclick="openPreview('${file.id}')" class="secondary" title="Предпросмотр">👁️</button>
-                    ${file.shared && file.shareExpiresAt ? '' : `<button onclick="shareFile('${file.id}')" class="secondary" title="Поделиться">🔗</button>`}
-                    <button onclick="renameFile('${file.id}')" class="secondary" title="Переименовать">✏️</button>
-                    <button onclick="moveFileDialog('${file.id}')" class="secondary" title="Переместить">📁</button>
-                    <button onclick="deleteFile('${file.id}')" class="danger" title="Удалить">🗑️</button>
-                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">🔥</button>
+                    <button onclick="downloadFile('${file.id}')" class="primary" title="Скачать">${iconHtml('download')}</button>
+                    <button onclick="openPreview('${file.id}')" class="secondary" title="Предпросмотр">${iconHtml('preview')}</button>
+                    ${file.shared && file.shareExpiresAt ? '' : `<button onclick="shareFile('${file.id}')" class="secondary" title="Поделиться">${iconHtml('share')}</button>`}
+                    <button onclick="renameFile('${file.id}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
+                    <button onclick="moveFileDialog('${file.id}')" class="secondary" title="Переместить">${iconHtml('move')}</button>
+                    <button onclick="deleteFile('${file.id}')" class="danger" title="Удалить">${iconHtml('trash')}</button>
+                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно" style="background:linear-gradient(135deg,#8b0000 0%,#a00000 100%);">${iconHtml('delete-forever')}</button>
                 </div>
             `;
         });
