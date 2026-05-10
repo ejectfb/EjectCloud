@@ -74,7 +74,7 @@
     
     window.deleteFolder = function(folderPath) {
         const folderName = folderPath.split('/').pop();
-        showConfirm(`Переместить папку "${folderName}" в корзину?`, () => {
+        showDeleteConfirm(`Удалить папку "${folderName}"?`, () => {
             const token = getAuthToken();
             fetch(`/api/files/folder?path=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
                 method: 'DELETE'
@@ -84,6 +84,8 @@
                 loadFiles();
             })
             .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+        }, () => {
+            permanentDeleteFolderNow(folderPath);
         });
     };
 
@@ -241,7 +243,7 @@
 
     window.deleteFile = function(fileId) {
         const fileName = fileId.split('/').pop();
-        showConfirm(`Переместить файл "${fileName}" в корзину?`, () => {
+        showDeleteConfirm(`Удалить файл "${fileName}"?`, () => {
             const token = getAuthToken();
             fetch(`/api/files/delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
                 method: 'DELETE'
@@ -251,38 +253,50 @@
                 loadFiles();
             })
             .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+        }, () => {
+            permanentDeleteFileNow(fileId);
         });
     };
+
+    function permanentDeleteFileNow(fileId) {
+        const fileName = fileId.split('/').pop();
+        const token = getAuthToken();
+        fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+            method: 'DELETE'
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Ошибка удаления');
+            showNotification(`Файл "${fileName}" удалён безвозвратно`, 'success');
+            loadFiles();
+        })
+        .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+    }
     
     window.permanentDeleteFile = function(fileId) {
         const fileName = fileId.split('/').pop();
         showConfirm(`Удалить файл "${fileName}" БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
-            const token = getAuthToken();
-            fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
-                method: 'DELETE'
-            })
-            .then(r => {
-                if (!r.ok) throw new Error('Ошибка удаления');
-                showNotification(`Файл "${fileName}" удалён безвозвратно`, 'success');
-                loadFiles();
-            })
-            .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+            permanentDeleteFileNow(fileId);
         });
     };
+
+    function permanentDeleteFolderNow(folderPath) {
+        const folderName = folderPath.split('/').pop();
+        const token = getAuthToken();
+        fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
+            method: 'DELETE'
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Ошибка удаления');
+            showNotification(`Папка "${folderName}" удалена безвозвратно`, 'success');
+            loadFiles();
+        })
+        .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+    }
     
     window.permanentDeleteFolder = function(folderPath) {
         const folderName = folderPath.split('/').pop();
         showConfirm(`Удалить папку "${folderName}" и ВСЕ содержимое БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
-            const token = getAuthToken();
-            fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
-                method: 'DELETE'
-            })
-            .then(r => {
-                if (!r.ok) throw new Error('Ошибка удаления');
-                showNotification(`Папка "${folderName}" удалена безвозвратно`, 'success');
-                loadFiles();
-            })
-            .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+            permanentDeleteFolderNow(folderPath);
         });
     };
 
@@ -651,16 +665,13 @@
     
     function updateQuotaDisplay(quota) {
         const percentage = Math.min(100, quota.percentage);
-        const usedGB = (quota.used / 1024 / 1024 / 1024).toFixed(2);
-        const totalGB = (quota.quota / 1024 / 1024 / 1024).toFixed(2);
-        const remainingGB = (quota.remaining / 1024 / 1024 / 1024).toFixed(2);
+        const usedGB = (quota.used / 1024 / 1024 / 1024).toFixed(1);
+        const totalGB = (quota.quota / 1024 / 1024 / 1024).toFixed(1);
+        const remainingGB = (quota.remaining / 1024 / 1024 / 1024).toFixed(1);
         
         $quotaProgress.style.width = percentage + '%';
-        if (isMobileLayout()) {
-            $quotaText.textContent = `Осталось ${remainingGB} GB`;
-        } else {
-            $quotaText.textContent = `Осталось: ${remainingGB} GB / ${totalGB} GB`;
-        }
+        $quotaText.textContent = isMobileLayout() ? `${usedGB}/${totalGB} GB` : `${usedGB} из ${totalGB} GB`;
+        $quotaText.title = `Использовано ${usedGB} GB, свободно ${remainingGB} GB, всего ${totalGB} GB`;
         
         // Цвет прогрессбара в зависимости от заполненности
         if (percentage < 70) {

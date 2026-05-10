@@ -387,18 +387,18 @@
         .quota-display {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 6px;
             background: rgba(255,255,255,0.2);
-            padding: 10px 15px;
-            border-radius: 25px;
+            padding: 5px 8px;
+            border-radius: 14px;
             backdrop-filter: blur(10px);
         }
         
         .quota-bar {
-            width: 200px;
-            height: 8px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 4px;
+            width: 104px;
+            height: 4px;
+            background: rgba(255,255,255,0.38);
+            border-radius: 999px;
             overflow: hidden;
         }
         
@@ -621,8 +621,8 @@
         /* Task center (bubble + right drawer) */
         .task-bubble {
             position: static;
-            width: 104px;
-            height: 30px;
+            width: 56px;
+            height: 20px;
             border-radius: 999px;
             border: none;
             cursor: pointer;
@@ -632,7 +632,7 @@
             justify-content: center;
             background: rgba(255,255,255,0.92);
             border: 1px solid rgba(0,0,0,0.08);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
             backdrop-filter: blur(10px);
             overflow: hidden;
             position: relative;
@@ -665,7 +665,7 @@
             z-index: 1;
             font-weight: 800;
             color: #2c3e50;
-            font-size: 12px;
+            font-size: 10px;
             letter-spacing: 0.2px;
         }
 
@@ -900,12 +900,12 @@
             }
 
             #taskBubble {
-                width: 86px;
-                height: 28px;
+                width: 62px;
+                height: 22px;
             }
 
             #taskBubble .pct {
-                font-size: 11px;
+                font-size: 10px;
             }
 
             /* Row 1 icons only */
@@ -930,12 +930,13 @@
             .quota-display {
                 flex: 1 1 auto;
                 justify-content: flex-start;
-                gap: 10px;
+                gap: 6px;
             }
 
             .quota-bar {
                 flex: 1 1 auto;
                 max-width: none;
+                min-width: 64px;
             }
 
             .quota-text {

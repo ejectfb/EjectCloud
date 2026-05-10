@@ -99,10 +99,10 @@
                     <thead>
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th><span class="icon-text"><img class="icon" src="icons/file.svg" alt="" aria-hidden="true">Имя</span></th>
-                            <th><span class="icon-text"><img class="icon" src="icons/storage.svg" alt="" aria-hidden="true">Размер</span></th>
+                            <th>Имя</th>
+                            <th>Размер</th>
                             <th>Дата</th>
-                            <th><span class="icon-text"><img class="icon" src="icons/share.svg" alt="" aria-hidden="true">Ссылка</span></th>
+                            <th>Ссылка</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -147,6 +147,7 @@
             <div class="modal-buttons">
                 <button onclick="closeConfirmModal()" class="secondary">Отмена</button>
                 <button id="confirmButton" onclick="confirmAction()" class="danger">Подтвердить</button>
+                <button id="confirmPermanentButton" onclick="confirmPermanentAction()" class="danger hidden">Удалить безвозвратно</button>
             </div>
         </div>
     </div>

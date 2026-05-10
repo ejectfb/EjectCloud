@@ -258,12 +258,33 @@
     function showConfirm(message, callback) {
         document.getElementById('confirmMessage').textContent = message;
         confirmCallback = callback;
+        document.getElementById('confirmButton').textContent = 'Подтвердить';
+        document.getElementById('confirmPermanentButton').classList.add('hidden');
+        document.getElementById('confirmPermanentButton').onclick = null;
+        document.getElementById('confirmModal').style.display = 'block';
+    }
+
+    function showDeleteConfirm(message, deleteCallback, permanentCallback) {
+        document.getElementById('confirmMessage').textContent = message;
+        confirmCallback = deleteCallback;
+        document.getElementById('confirmButton').textContent = 'Удалить';
+        const permanentButton = document.getElementById('confirmPermanentButton');
+        permanentButton.classList.remove('hidden');
+        permanentButton.onclick = function() {
+            if (permanentCallback) permanentCallback();
+            closeConfirmModal();
+        };
         document.getElementById('confirmModal').style.display = 'block';
     }
     
     window.closeConfirmModal = function() {
         document.getElementById('confirmModal').style.display = 'none';
         confirmCallback = null;
+        const permanentButton = document.getElementById('confirmPermanentButton');
+        if (permanentButton) {
+            permanentButton.classList.add('hidden');
+            permanentButton.onclick = null;
+        }
     };
     
     window.confirmAction = function() {
@@ -272,6 +293,8 @@
         }
         closeConfirmModal();
     };
+
+    window.confirmPermanentAction = function() {};
 
     window.moveFileDialog = function(fileId) {
         selectedMoveFile = fileId;
@@ -689,7 +712,6 @@
                     <button onclick="event.stopPropagation(); downloadFolderArchive('${folder}')" class="primary" title="Скачать папку">${iconHtml('download')}</button>
                     <button onclick="event.stopPropagation(); renameFolder('${folder}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
                     <button onclick="event.stopPropagation(); deleteFolder('${folder}')" class="danger" title="Удалить папку">${iconHtml('trash')}</button>
-                    <button onclick="event.stopPropagation(); permanentDeleteFolder('${folder}')" class="danger" title="Удалить безвозвратно">${iconHtml('delete-forever')}</button>
                 </div>
             `;
 
@@ -745,12 +767,10 @@
             actionsCell.innerHTML = `
                 <div class="action-buttons">
                     <button onclick="downloadFile('${file.id}')" class="primary" title="Скачать">${iconHtml('download')}</button>
-                    <button onclick="openPreview('${file.id}')" class="secondary" title="Предпросмотр">${iconHtml('preview')}</button>
                     ${file.shared && file.shareExpiresAt ? '' : `<button onclick="shareFile('${file.id}')" class="secondary" title="Поделиться">${iconHtml('share')}</button>`}
                     <button onclick="renameFile('${file.id}')" class="secondary" title="Переименовать">${iconHtml('edit')}</button>
                     <button onclick="moveFileDialog('${file.id}')" class="secondary" title="Переместить">${iconHtml('move')}</button>
                     <button onclick="deleteFile('${file.id}')" class="danger" title="Удалить">${iconHtml('trash')}</button>
-                    <button onclick="permanentDeleteFile('${file.id}')" class="danger" title="Удалить безвозвратно">${iconHtml('delete-forever')}</button>
                 </div>
             `;
         });

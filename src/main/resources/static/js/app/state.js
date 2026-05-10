@@ -193,10 +193,8 @@
             addActionButton('Скачать папку', 'primary', () => downloadFolderArchive(id));
             addActionButton('Переименовать', 'secondary', () => renameFolder(id));
             addActionButton('Удалить папку', 'danger', () => deleteFolder(id));
-            addActionButton('Удалить безвозвратно', 'danger', () => permanentDeleteFolder(id));
         } else {
             // file
-            addActionButton('Предпросмотр', 'secondary', () => openPreview(id));
             addActionButton('Скачать', 'primary', () => downloadFile(id));
             addActionButton('Поделиться', 'secondary', () => shareFile(id));
 
@@ -208,7 +206,6 @@
             addActionButton('Переименовать', 'secondary', () => renameFile(id));
             addActionButton('Переместить', 'secondary', () => moveFileDialog(id));
             addActionButton('Удалить', 'danger', () => deleteFile(id));
-            addActionButton('Удалить безвозвратно', 'danger', () => permanentDeleteFile(id));
         }
 
         $actionsModal.style.display = 'block';
