@@ -232,7 +232,7 @@ public class TelegramBotService {
                 return false;
             }
             String caption = "<b>Файл в хранилище EjectCloud:</b>\n" +
-                            "Пользователь: <code>" + FormatUtil.escapeHtml(filename) + "</code>\n" +
+                            "Название: <code>" + FormatUtil.escapeHtml(filename) + "</code>\n" +
                             "Размер: " + FormatUtil.formatFileSize(fileSize);
             TelegramBot b = getOrCreateBot();
             if (b == null) return false;
