@@ -356,6 +356,9 @@
                 .then(j => {
                     if (j.ok) {
                         $who.textContent = j.user;
+                        currentTelegramVerified = !!j.telegramVerified;
+                        const userMenuName = document.getElementById('userMenuName');
+                        if (userMenuName) userMenuName.textContent = j.user;
                         
                         // Показываем кнопку админ-панели для админов
                         if (j.isAdmin) {
@@ -396,6 +399,8 @@
                 localStorage.removeItem('eject_token');
                 
                 $who.textContent = data.telegramId;
+                const userMenuName = document.getElementById('userMenuName');
+                if (userMenuName) userMenuName.textContent = data.telegramId;
                 showApp();
                 startTokenRefresh();
                 loadFiles();

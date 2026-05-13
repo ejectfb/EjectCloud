@@ -86,9 +86,23 @@ public class UserService {
         }
         return null;
     }
+
+    public UserData findUserById(String userId) {
+        if (!Files.exists(Paths.get(baseDir, userId, "user.xml"))) {
+            return null;
+        }
+        return loadUserData(userId);
+    }
     
     public UserData createUser(String email, String password, String displayName, String telegramId, boolean isAdmin) {
-        String userId = generateUserId(displayName);
+        return createUser(email, password, displayName, telegramId, isAdmin, generateUserId(displayName));
+    }
+
+    public UserData createUser(String email, String password, String displayName, String telegramId, boolean isAdmin, String nickname) {
+        String userId = normalizeNickname(nickname);
+        if (Files.exists(Paths.get(baseDir, userId))) {
+            throw new IllegalArgumentException("Nickname уже занят");
+        }
         String salt = passwordService.generateSalt();
         String passwordHash = passwordService.hashPassword(password, salt);
         
@@ -96,7 +110,9 @@ public class UserService {
         userData.setId(userId);
         userData.setEmail(email);
         userData.setDisplayName(displayName);
+        userData.setNickname(userId);
         userData.setTelegramId(telegramId);
+        userData.setTelegramVerified(false);
         userData.setPasswordHash(passwordHash);
         userData.setSalt(salt);
         userData.setQuotaBytes(defaultQuota);
@@ -140,30 +156,52 @@ public class UserService {
             saveUserData(userId, userData);
         }
     }
-    
-    public void updateUser(String userId, String email, String displayName, String telegramId, long quotaBytes) {
+
+    public void updateTelegram(String userId, String telegramId, boolean verified) {
         UserData userData = loadUserData(userId);
         if (userData != null) {
-            // Переименовываем папку только если изменилось отображаемое имя
-            if (!displayName.equals(userData.getDisplayName())) {
-                String newUserId = generateUserId(displayName);
-                
-                // Если новый ID отличается от старого, переименовываем папку
-                if (!userId.equals(newUserId)) {
-                    Path oldDir = Paths.get(baseDir, userId);
-                    Path newDir = Paths.get(baseDir, newUserId);
-                    try {
-                        Files.move(oldDir, newDir);
-                        userData.setId(newUserId);
-                        userId = newUserId; // Обновляем локальную переменную
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to rename user directory", e);
-                    }
+            if (!telegramId.equals(userData.getTelegramId())) {
+                userData.setTelegramVerified(false);
+            }
+            userData.setTelegramId(telegramId);
+            userData.setTelegramVerified(verified);
+            saveUserData(userId, userData);
+        }
+    }
+
+    public void unlinkTelegram(String userId) {
+        updateTelegram(userId, "", false);
+    }
+    
+    public void updateUser(String userId, String email, String displayName, String telegramId, long quotaBytes) {
+        updateUser(userId, email, displayName, telegramId, quotaBytes, userId);
+    }
+
+    public void updateUser(String userId, String email, String displayName, String telegramId, long quotaBytes, String nickname) {
+        UserData userData = loadUserData(userId);
+        if (userData != null) {
+            String newUserId = normalizeNickname(nickname);
+            if (!userId.equals(newUserId)) {
+                Path oldDir = Paths.get(baseDir, userId);
+                Path newDir = Paths.get(baseDir, newUserId);
+                if (Files.exists(newDir)) {
+                    throw new IllegalArgumentException("Nickname уже занят");
+                }
+                try {
+                    Files.move(oldDir, newDir);
+                    userData.setId(newUserId);
+                    userId = newUserId;
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to rename user directory", e);
                 }
             }
             
             userData.setEmail(email);
             userData.setDisplayName(displayName);
+            userData.setNickname(userId);
+            if (!telegramId.equals(userData.getTelegramId())) {
+                userData.setTelegramVerified(false);
+            }
             userData.setTelegramId(telegramId);
             userData.setQuotaBytes(quotaBytes);
             saveUserData(userId, userData);
@@ -217,6 +255,14 @@ public class UserService {
         }
         return userId;
     }
+
+    private String normalizeNickname(String nickname) {
+        String normalized = nickname == null ? "" : nickname.trim().toLowerCase();
+        if (!normalized.matches("[a-z0-9_-]{1,40}")) {
+            throw new IllegalArgumentException("Nickname может содержать только латинские буквы, цифры, _ и -");
+        }
+        return normalized;
+    }
     
     private Path getUserDir(String userId) {
         Path dir = Paths.get(baseDir, userId);
@@ -237,7 +283,11 @@ public class UserService {
         try {
             JAXBContext context = JAXBContext.newInstance(UserData.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            return (UserData) unmarshaller.unmarshal(userFile.toFile());
+            UserData userData = (UserData) unmarshaller.unmarshal(userFile.toFile());
+            if (userData.getNickname() == null || userData.getNickname().isBlank()) {
+                userData.setNickname(userId);
+            }
+            return userData;
         } catch (Exception e) {
             throw new RuntimeException("Cannot load user data", e);
         }

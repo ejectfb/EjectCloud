@@ -59,6 +59,23 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+function jsString(str) {
+    return String(str == null ? '' : str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\r?\n/g, ' ');
+}
+
+async function readError(response) {
+    const text = await response.text();
+    try {
+        const data = JSON.parse(text);
+        return data.error || text || 'Ошибка сервера';
+    } catch {
+        return text || 'Ошибка сервера';
+    }
+}
+
 function renderTopUsersMobile(usersList) {
     if (!$topUsersList) return;
     $topUsersList.innerHTML = '';
@@ -110,8 +127,8 @@ function renderUsersMobile(users) {
         const main = document.createElement('div');
         main.className = 'admin-main';
         main.innerHTML = `
-            <div class="admin-title">${escapeHtml(user.displayName)}</div>
-            <div class="admin-meta">
+                <div class="admin-title">${escapeHtml(user.displayName)} <span style="font-weight:500;color:#6b7280;">@${escapeHtml(user.nickname || user.id)}</span></div>
+                <div class="admin-meta">
                 <span>${escapeHtml(user.email)}</span>
                 <span>${escapeHtml(user.telegramId || '-')}</span>
                 <span>${usedMB} MB / ${quotaMB} MB (${usagePercent}%)</span>
@@ -128,7 +145,7 @@ function renderUsersMobile(users) {
         editBtn.className = 'primary';
         editBtn.innerHTML = '<img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">';
         editBtn.title = 'Редактировать';
-        editBtn.onclick = () => openEditUserModal(user.id, user.email, user.displayName, user.telegramId, quotaMB);
+        editBtn.onclick = () => openEditUserModal(user.id, user.nickname || user.id, user.email, user.displayName, user.telegramId, quotaMB);
 
         const resetBtn = document.createElement('button');
         resetBtn.className = 'secondary';
@@ -439,9 +456,10 @@ function loadUsers() {
                 const usagePercent = user.usagePercent || 0;
                 
                 row.innerHTML = `
-                    <td>${user.displayName}</td>
-                    <td>${user.email}</td>
-                    <td>${user.telegramId || '-'}</td>
+                    <td>${escapeHtml(user.displayName)}</td>
+                    <td>${escapeHtml(user.nickname || user.id)}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td>${escapeHtml(user.telegramId || '-')}</td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <div style="width: 100px; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden;">
@@ -452,9 +470,9 @@ function loadUsers() {
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button onclick="openEditUserModal('${user.id}', '${user.email}', '${user.displayName}', '${user.telegramId}', ${quotaMB})" class="primary"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true"></button>
-                            <button onclick="resetPassword('${user.id}')" class="secondary"><img class="icon" src="icons/key.svg" alt="" aria-hidden="true"></button>
-                            <button onclick="deleteUser('${user.id}', '${user.displayName}')" class="danger"><img class="icon" src="icons/trash.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="openEditUserModal('${jsString(user.id)}', '${jsString(user.nickname || user.id)}', '${jsString(user.email)}', '${jsString(user.displayName)}', '${jsString(user.telegramId || '')}', ${quotaMB})" class="primary"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="resetPassword('${jsString(user.id)}')" class="secondary"><img class="icon" src="icons/key.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="deleteUser('${jsString(user.id)}', '${jsString(user.displayName)}')" class="danger"><img class="icon" src="icons/trash.svg" alt="" aria-hidden="true"></button>
                         </div>
                     </td>
                 `;
@@ -465,11 +483,12 @@ function loadUsers() {
 
 function createUser() {
     const email = document.getElementById('newEmail').value;
+    const nickname = document.getElementById('newNickname').value;
     const displayName = document.getElementById('newDisplayName').value;
     const telegramId = document.getElementById('newTelegramId').value;
     const quotaMB = document.getElementById('newQuota').value;
     
-    if (!email || !displayName || !telegramId || !quotaMB) {
+    if (!email || !nickname || !displayName || !quotaMB) {
         showNotification('Заполните все поля', 'error');
         return;
     }
@@ -481,6 +500,7 @@ function createUser() {
     
     const params = new URLSearchParams();
     params.append('email', email);
+    params.append('nickname', nickname);
     params.append('displayName', displayName);
     params.append('telegramId', telegramId);
     params.append('quotaBytes', quotaMB * 1024 * 1024);
@@ -489,14 +509,15 @@ function createUser() {
         method: 'POST',
         body: params
     })
-    .then(r => {
-        if (!r.ok) return r.text().then(t => { throw new Error(t); });
+    .then(async r => {
+        if (!r.ok) throw new Error(await readError(r));
         return r.json();
     })
     .then(() => {
         showNotification('Пользователь создан', 'success');
         loadUsers();
         document.getElementById('newEmail').value = '';
+        document.getElementById('newNickname').value = '';
         document.getElementById('newDisplayName').value = '';
         document.getElementById('newTelegramId').value = '';
         document.getElementById('newQuota').value = '1024';
@@ -683,8 +704,9 @@ function getTimeLabels(entries, period) {
 
 let editingUserId = null;
 
-function openEditUserModal(userId, email, displayName, telegramId, quotaMB) {
+function openEditUserModal(userId, nickname, email, displayName, telegramId, quotaMB) {
     editingUserId = userId;
+    document.getElementById('editNickname').value = nickname || userId;
     document.getElementById('editEmail').value = email;
     document.getElementById('editDisplayName').value = displayName;
     document.getElementById('editTelegramId').value = telegramId || '';
@@ -701,11 +723,12 @@ function saveUserEdit() {
     if (!editingUserId) return;
     
     const newEmail = document.getElementById('editEmail').value;
+    const newNickname = document.getElementById('editNickname').value;
     const newDisplayName = document.getElementById('editDisplayName').value;
     const newTelegramId = document.getElementById('editTelegramId').value;
     const newQuotaMB = document.getElementById('editQuota').value;
     
-    if (!newEmail || !newDisplayName || !newTelegramId || !newQuotaMB) {
+    if (!newEmail || !newNickname || !newDisplayName || !newQuotaMB) {
         showNotification('Заполните все поля', 'error');
         return;
     }
@@ -717,6 +740,7 @@ function saveUserEdit() {
     
     const params = new URLSearchParams();
     params.append('userId', editingUserId);
+    params.append('nickname', newNickname);
     params.append('email', newEmail);
     params.append('displayName', newDisplayName);
     params.append('telegramId', newTelegramId);
@@ -726,8 +750,8 @@ function saveUserEdit() {
         method: 'POST',
         body: params
     })
-    .then(r => {
-        if (!r.ok) throw new Error('Ошибка сервера');
+    .then(async r => {
+        if (!r.ok) throw new Error(await readError(r));
         showNotification('Пользователь обновлен', 'success');
         closeEditUserModal();
         loadUsers();
@@ -848,7 +872,7 @@ function loadTelegramSettings() {
                     document.getElementById('telegramAdminChatId').value = data.connected ? document.getElementById('telegramAdminChatId').value : '';
                 }
                 if (data.connected) {
-                    showTelegramStatus('Бот подключен и работает', 'success');
+                    showTelegramStatus('Бот подключен и работает' + (data.botUsername ? ': ' + data.botUsername : ''), 'success');
                 } else if (data.configured) {
                     showTelegramStatus('Ошибка подключения: ' + (data.connectionError || 'Неизвестная ошибка'), 'error');
                 }
@@ -878,7 +902,7 @@ function testTelegramConnection() {
     
     const testBtn = document.getElementById('telegramTestBtn');
     testBtn.disabled = true;
-    testBtn.textContent = 'Подключение...';
+    testBtn.textContent = 'Проверка и сохранение...';
     
     const params = new URLSearchParams();
     params.append('botToken', botToken);
@@ -891,7 +915,7 @@ function testTelegramConnection() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            showTelegramStatus(data.message || 'Подключение успешно!', 'success');
+            showTelegramStatus((data.message || 'Бот подключен и сохранен') + (data.botUsername ? ': ' + data.botUsername : ''), 'success');
         } else {
             showTelegramStatus('Ошибка: ' + (data.error || 'Не удалось подключиться'), 'error');
         }
@@ -901,54 +925,7 @@ function testTelegramConnection() {
     })
     .finally(() => {
         testBtn.disabled = false;
-        testBtn.innerHTML = '<img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Тест подключения';
+        testBtn.innerHTML = '<img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Проверить и сохранить';
     });
 }
 
-function saveTelegramConfig() {
-    if (!accessToken) {
-        logout();
-        return;
-    }
-    
-    const botToken = document.getElementById('telegramBotToken').value;
-    const adminChatId = document.getElementById('telegramAdminChatId').value;
-    
-    if (!botToken || botToken === '•••••••••••••••••••••••••••••••') {
-        showTelegramStatus('Введите токен бота', 'error');
-        return;
-    }
-    
-    if (!adminChatId) {
-        showTelegramStatus('Введите Chat ID админа', 'error');
-        return;
-    }
-    
-    const saveBtn = document.getElementById('telegramSaveBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Сохранение...';
-    
-    const params = new URLSearchParams();
-    params.append('botToken', botToken);
-    params.append('adminChatId', adminChatId);
-    
-    authFetch('/admin/api/telegram/save', {
-        method: 'POST',
-        body: params
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showTelegramStatus(data.message || 'Настройки сохранены и бот подключен!', 'success');
-        } else {
-            showTelegramStatus('Ошибка: ' + (data.error || 'Не удалось сохранить настройки'), 'error');
-        }
-    })
-    .catch(e => {
-        showTelegramStatus('Ошибка: ' + e.message, 'error');
-    })
-    .finally(() => {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<img class="icon" src="icons/confirm.svg" alt="" aria-hidden="true">Сохранить настройки';
-    });
-}

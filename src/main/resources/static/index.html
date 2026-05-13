@@ -58,13 +58,8 @@
                     <span id="timer"></span>
                 </div>
                 
-                <button id="adminPanelBtn" onclick="openAdminPanel()" class="success" style="display: none;" title="Админ-панель">
-                    <img class="icon btn-icon" src="icons/admin.svg" alt="" aria-hidden="true">
-                    <span class="btn-text"> Админ</span>
-                </button>
-                <button onclick="logout()" class="danger" title="Выйти">
-                    <img class="icon btn-icon" src="icons/logout.svg" alt="" aria-hidden="true">
-                    <span class="btn-text"> Выход</span>
+                <button id="userMenuBtn" onclick="toggleUserMenu()" class="secondary user-menu-button" title="Меню пользователя" aria-label="Меню пользователя">
+                    &#9776;
                 </button>
             </div>
         </div>
@@ -116,6 +111,26 @@
 </div>
 
 <input type="file" id="fileInput" multiple style="display: none;">
+
+<div id="userMenuBackdrop" class="user-menu-backdrop" onclick="closeUserMenu()"></div>
+<aside id="userMenuDrawer" class="user-menu-drawer" aria-label="Меню пользователя">
+    <div class="user-menu-header">
+        <div>
+            <div class="user-menu-title">Аккаунт</div>
+            <div id="userMenuName" class="user-menu-name"></div>
+        </div>
+        <button class="secondary" onclick="closeUserMenu()" title="Закрыть">&times;</button>
+    </div>
+    <div class="user-menu-list">
+        <button id="adminPanelBtn" onclick="openAdminPanel()" class="success user-menu-item" style="display: none;">
+            <img class="icon btn-icon" src="icons/admin.svg" alt="" aria-hidden="true">Админ
+        </button>
+        <button onclick="openSettingsModal()" class="secondary user-menu-item">Настройки</button>
+        <button onclick="logout()" class="danger user-menu-item">
+            <img class="icon btn-icon" src="icons/logout.svg" alt="" aria-hidden="true">Выход
+        </button>
+    </div>
+</aside>
 
 <!-- Модальное окно перемещения -->
 <div id="moveModal" class="modal">
@@ -184,6 +199,34 @@
     </div>
 </div>
 
+<div id="settingsModal" class="modal">
+    <div class="modal-content settings-modal-content">
+        <div class="modal-header">
+            <div class="modal-title">Настройки</div>
+            <span class="close" onclick="closeSettingsModal()">&times;</span>
+        </div>
+        <div class="modal-body settings-body">
+            <section class="settings-section">
+                <h3>Изменить пароль</h3>
+                <input type="password" id="settingsCurrentPassword" placeholder="Старый пароль" autocomplete="current-password">
+                <input type="password" id="settingsNewPassword" placeholder="Новый пароль" autocomplete="new-password">
+                <input type="password" id="settingsNewPasswordRepeat" placeholder="Повторите новый пароль" autocomplete="new-password">
+                <button class="primary" onclick="changeSettingsPassword()">Сохранить пароль</button>
+            </section>
+            <section class="settings-section">
+                <h3>Telegram</h3>
+                <div id="telegramStatus" class="telegram-status">Загрузка...</div>
+                <div id="telegramBindHelp" class="telegram-bind-help"></div>
+                <input type="text" id="telegramCodeInput" placeholder="Код из Telegram" inputmode="numeric" maxlength="6">
+                <div class="settings-actions-row">
+                    <button id="bindTelegramBtn" class="success" onclick="bindTelegramByCode()">Привязать Telegram</button>
+                    <button id="unlinkTelegramBtn" class="danger" onclick="unlinkTelegram()" style="display: none;">Отвязать Telegram</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
 <!-- Модальное окно QR-кода -->
 <div id="qrModal" class="modal">
     <div class="modal-content">
@@ -227,6 +270,7 @@
 <script src="js/app/browser.js"></script>
 <script src="js/app/uploads.js"></script>
 <script src="js/app/file-actions.js"></script>
+<script src="js/app/settings.js"></script>
 <script src="js/app/bulk-actions.js"></script>
 <script src="js/app/bootstrap.js"></script>
 </body>

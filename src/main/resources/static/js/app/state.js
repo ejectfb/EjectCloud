@@ -32,6 +32,7 @@
     let uploadQueue = [];
     let isUploading = false;
     let selectedItems = new Set();
+    let currentTelegramVerified = false;
 
     let uploadTotalBytes = 0;
     let uploadDoneBytes = 0;

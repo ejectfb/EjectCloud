@@ -179,6 +179,10 @@
     
     window.shareFileToTelegram = function(fileId) {
         closeQRModal();
+        if (!currentTelegramVerified) {
+            showNotification('В настройках нужно верифицировать Telegram', 'error');
+            return;
+        }
         const fileObj = allFiles.find(f => f.id === fileId);
         const fileName = fileId.includes('/') ? fileId.split('/').pop() : fileId;
         const fileSize = fileObj && fileObj.size ? fileObj.size : 0;

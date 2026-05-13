@@ -5,6 +5,7 @@ import org.ejectfb.ejectcloud.model.FileData;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
 import org.ejectfb.ejectcloud.service.TelegramBotService;
+import org.ejectfb.ejectcloud.service.UserService;
 import org.ejectfb.ejectcloud.service.ArchiveService;
 import org.ejectfb.ejectcloud.service.JwtService;
 import org.ejectfb.ejectcloud.util.FormatUtil;
@@ -43,6 +44,7 @@ public class FileController {
     private final JwtService jwtService;
     private final ArchiveService archiveService;
     private final TelegramBotService telegramBotService;
+    private final UserService userService;
     
     @Value("${ejectcloud.upload.timeout:10800000}")
     private long uploadTimeout;
@@ -51,11 +53,12 @@ public class FileController {
     private String baseUrl;
 
     public FileController(FileStorageService storageService, JwtService jwtService, ArchiveService archiveService,
-                          TelegramBotService telegramBotService) {
+                          TelegramBotService telegramBotService, UserService userService) {
         this.storageService = storageService;
         this.jwtService = jwtService;
         this.archiveService = archiveService;
         this.telegramBotService = telegramBotService;
+        this.userService = userService;
     }
 
     private AuthenticatedUser getCurrentUser() {
@@ -661,7 +664,8 @@ public class FileController {
         try {
             String userId = requireUserId();
             AuthenticatedUser currentUser = getCurrentUser();
-            String userTelegramId = currentUser != null ? currentUser.getTelegramId() : null;
+            UserData userData = currentUser != null ? userService.loadUserData(currentUser.getUserId()) : null;
+            String userTelegramId = userData != null ? userData.getTelegramId() : null;
             
             if (!telegramBotService.isConfigured()) {
                 return ResponseEntity.badRequest()
@@ -669,10 +673,10 @@ public class FileController {
                     .body(java.util.Map.of("error", "Telegram бот не настроен"));
             }
             
-            if (userTelegramId == null || userTelegramId.isEmpty()) {
+            if (userTelegramId == null || userTelegramId.isEmpty() || !userData.isTelegramVerified()) {
                 return ResponseEntity.badRequest()
                     .header("Content-Type", "application/json; charset=UTF-8")
-                    .body(java.util.Map.of("error", "Telegram ID пользователя не найден"));
+                    .body(java.util.Map.of("error", "В настройках нужно верифицировать Telegram"));
             }
             
             FileData fileData = storageService.listFiles(userId)
@@ -720,7 +724,8 @@ public class FileController {
         try {
             String userId = requireUserId();
             AuthenticatedUser currentUser = getCurrentUser();
-            String userTelegramId = currentUser != null ? currentUser.getTelegramId() : null;
+            UserData userData = currentUser != null ? userService.loadUserData(currentUser.getUserId()) : null;
+            String userTelegramId = userData != null ? userData.getTelegramId() : null;
             
             if (!telegramBotService.isConfigured()) {
                 return ResponseEntity.badRequest()
@@ -728,10 +733,10 @@ public class FileController {
                     .body(java.util.Map.of("error", "Telegram бот не настроен"));
             }
             
-            if (userTelegramId == null || userTelegramId.isEmpty()) {
+            if (userTelegramId == null || userTelegramId.isEmpty() || !userData.isTelegramVerified()) {
                 return ResponseEntity.badRequest()
                     .header("Content-Type", "application/json; charset=UTF-8")
-                    .body(java.util.Map.of("error", "Telegram ID пользователя не найден"));
+                    .body(java.util.Map.of("error", "В настройках нужно верифицировать Telegram"));
             }
             
             FileData fileData = storageService.listFiles(userId)

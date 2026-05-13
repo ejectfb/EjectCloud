@@ -127,6 +127,10 @@
                             <input id="newEmail" type="email" />
                         </div>
                         <div class="form-field">
+                            <label class="form-label">Nickname</label>
+                            <input id="newNickname" placeholder="folder-name" />
+                        </div>
+                        <div class="form-field">
                             <label class="form-label">Отображаемое имя</label>
                             <input id="newDisplayName" />
                         </div>
@@ -149,6 +153,7 @@
                         <thead>
                             <tr>
                                 <th>Имя</th>
+                                <th>Nickname</th>
                                 <th>Email</th>
                                 <th>Telegram ID</th>
                                 <th>Квота</th>
@@ -244,8 +249,7 @@
                             <input id="telegramAdminChatId" type="text" placeholder="Цифровой ID чата (можно узнать у @userinfobot)" />
                         </div>
                         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                            <button onclick="testTelegramConnection()" class="primary" id="telegramTestBtn"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Тест подключения</button>
-                            <button onclick="saveTelegramConfig()" class="success" id="telegramSaveBtn"><img class="icon" src="icons/confirm.svg" alt="" aria-hidden="true">Сохранить настройки</button>
+                            <button onclick="testTelegramConnection()" class="primary" id="telegramTestBtn"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Проверить и сохранить</button>
                         </div>
                         <div id="telegramStatus" class="hidden" style="padding: 15px; border-radius: 10px; font-weight: 500;"></div>
                     </div>
@@ -278,6 +282,10 @@
         </div>
         <div class="modal-body">
             <div style="display: grid; gap: 20px;">
+                <div class="form-field">
+                    <label class="form-label">Nickname</label>
+                    <input id="editNickname" />
+                </div>
                 <div class="form-field">
                     <label class="form-label">Email адрес</label>
                     <input id="editEmail" type="email" />

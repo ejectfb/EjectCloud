@@ -27,24 +27,24 @@ public class JwtService {
         this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     }
     
-    public String generateAccessToken(String telegramId) {
+    public String generateAccessToken(String userId) {
         return Jwts.builder()
-                .setSubject(telegramId)
+                .setSubject(userId)
                 .setIssuedAt(new Date())
                 .setExpiration(Date.from(Instant.now().plus(accessTokenMinutes, ChronoUnit.MINUTES)))
                 .signWith(secretKey)
                 .compact();
     }
     
-    public String generateRefreshToken(String telegramId) {
+    public String generateRefreshToken(String userId) {
         String refreshToken = Jwts.builder()
-                .setSubject(telegramId)
+                .setSubject(userId)
                 .setIssuedAt(new Date())
                 .setExpiration(Date.from(Instant.now().plus(refreshTokenDays, ChronoUnit.DAYS)))
                 .signWith(secretKey)
                 .compact();
         
-        refreshTokens.put(refreshToken, telegramId);
+        refreshTokens.put(refreshToken, userId);
         return refreshToken;
     }
     
@@ -69,9 +69,9 @@ public class JwtService {
                     .parseClaimsJws(refreshToken)
                     .getBody();
             
-            String telegramId = claims.getSubject();
-            if (refreshTokens.containsKey(refreshToken) && refreshTokens.get(refreshToken).equals(telegramId)) {
-                return telegramId;
+            String userId = claims.getSubject();
+            if (refreshTokens.containsKey(refreshToken) && refreshTokens.get(refreshToken).equals(userId)) {
+                return userId;
             }
         } catch (JwtException | IllegalArgumentException e) {
             // Token invalid
@@ -83,8 +83,8 @@ public class JwtService {
         refreshTokens.remove(refreshToken);
     }
     
-    public void revokeAllUserTokens(String telegramId) {
-        refreshTokens.entrySet().removeIf(entry -> entry.getValue().equals(telegramId));
+    public void revokeAllUserTokens(String userId) {
+        refreshTokens.entrySet().removeIf(entry -> entry.getValue().equals(userId));
     }
     
     public void cleanupExpiredTokens() {

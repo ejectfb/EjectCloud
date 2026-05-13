@@ -423,6 +423,74 @@
             color: white;
             font-weight: 600;
         }
+
+        .user-menu-button {
+            padding: 10px 12px;
+            line-height: 1;
+        }
+
+        .user-menu-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 1210;
+        }
+
+        .user-menu-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(340px, 88vw);
+            background: #fff;
+            transform: translateX(105%);
+            transition: transform 0.25s ease;
+            z-index: 1220;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.22);
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.user-menu-open .user-menu-backdrop {
+            display: block;
+        }
+
+        body.user-menu-open .user-menu-drawer {
+            transform: translateX(0);
+        }
+
+        .user-menu-header {
+            padding: 22px;
+            background: linear-gradient(135deg, #db9215 0%, #dea440 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .user-menu-title {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .user-menu-name {
+            margin-top: 4px;
+            opacity: 0.9;
+            word-break: break-word;
+        }
+
+        .user-menu-list {
+            display: grid;
+            gap: 12px;
+            padding: 18px;
+        }
+
+        .user-menu-item {
+            width: 100%;
+            justify-content: flex-start;
+        }
         
         .modal {
             display: none;
@@ -434,6 +502,10 @@
             height: 100%;
             background: rgba(0,0,0,0.6);
             backdrop-filter: blur(5px);
+        }
+
+        #confirmModal {
+            z-index: 1300;
         }
         
         .modal-content {
@@ -548,7 +620,7 @@
             border-left-color: #f39c12;
         }
         
-        input[type="text"], input[type="email"], input[type="number"] {
+        input[type="text"], input[type="email"], input[type="number"], input[type="password"] {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #ecf0f1;
@@ -557,10 +629,80 @@
             transition: border-color 0.3s ease;
         }
         
-        input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus {
+        input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus, input[type="password"]:focus {
             outline: none;
             border-color: #db9215;
             box-shadow: 0 0 0 3px rgba(219, 146, 21, 0.1);
+        }
+
+        .settings-modal-content {
+            max-width: 680px;
+        }
+
+        .settings-body {
+            display: grid;
+            gap: 18px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid #ecf0f1;
+            border-radius: 14px;
+            background: #fafbfc;
+        }
+
+        .settings-section h3 {
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        .settings-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .telegram-status {
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            background: #fff7e8;
+            color: #9a6208;
+        }
+
+        .telegram-status.verified {
+            background: #effaf3;
+            color: #1f8d4e;
+        }
+
+        .telegram-status.unverified {
+            background: #fff7e8;
+            color: #9a6208;
+        }
+
+        .telegram-code-box {
+            padding: 12px;
+            border-radius: 10px;
+            background: #eef6ff;
+            color: #1e3c72;
+            line-height: 1.5;
+        }
+
+        .telegram-bind-help {
+            padding: 12px;
+            border-radius: 10px;
+            background: #eef6ff;
+            color: #1e3c72;
+            line-height: 1.5;
+        }
+
+        .telegram-bind-help a {
+            color: #007acc;
+            font-weight: 700;
         }
         
         .file-icon {

@@ -17,9 +17,15 @@ public class UserData {
     
     @XmlElement
     private String displayName;
+
+    @XmlElement
+    private String nickname;
     
     @XmlElement
     private String telegramId;
+
+    @XmlElement
+    private boolean telegramVerified;
     
     @XmlElement
     private String passwordHash;
@@ -53,9 +59,15 @@ public class UserData {
     
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
+
+    public String getNickname() { return nickname != null && !nickname.isBlank() ? nickname : id; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
     
     public String getTelegramId() { return telegramId; }
     public void setTelegramId(String telegramId) { this.telegramId = telegramId; }
+
+    public boolean isTelegramVerified() { return telegramVerified; }
+    public void setTelegramVerified(boolean telegramVerified) { this.telegramVerified = telegramVerified; }
     
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }

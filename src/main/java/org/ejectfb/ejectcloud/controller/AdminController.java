@@ -50,6 +50,7 @@ public class AdminController {
             Map<String, Object> userMap = new HashMap<>();
             long usedBytes = storageService.calculateUsedBytes(user.getId());
             userMap.put("id", user.getId());
+            userMap.put("nickname", user.getNickname());
             userMap.put("email", user.getEmail());
             userMap.put("displayName", user.getDisplayName());
             userMap.put("telegramId", user.getTelegramId());
@@ -65,17 +66,22 @@ public class AdminController {
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestParam String email,
+                                        @RequestParam String nickname,
                                         @RequestParam String displayName,
-                                        @RequestParam String telegramId,
+                                        @RequestParam(defaultValue = "") String telegramId,
                                         @RequestParam(required = false) Long quotaBytes) {
         if (userService.findUserByEmail(email) != null) {
             return ResponseEntity.badRequest().body(Map.of("error", "User already exists"));
         }
-        long quota = quotaBytes != null ? quotaBytes : 1073741824L;
-        UserData userData = userService.createUser(email, email, displayName, telegramId, false);
-        userData.setQuotaBytes(quota);
-        userService.saveUserData(userData.getId(), userData);
-        return ResponseEntity.ok(userData);
+        try {
+            long quota = quotaBytes != null ? quotaBytes : 1073741824L;
+            UserData userData = userService.createUser(email, email, displayName, telegramId, false, nickname);
+            userData.setQuotaBytes(quota);
+            userService.saveUserData(userData.getId(), userData);
+            return ResponseEntity.ok(userData);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/quota")
@@ -98,12 +104,17 @@ public class AdminController {
 
     @PostMapping("/users/edit")
     public ResponseEntity<?> editUser(@RequestParam String userId,
+                                      @RequestParam String nickname,
                                       @RequestParam String email,
                                       @RequestParam String displayName,
-                                      @RequestParam String telegramId,
+                                      @RequestParam(defaultValue = "") String telegramId,
                                       @RequestParam long quotaBytes) {
-        userService.updateUser(userId, email, displayName, telegramId, quotaBytes);
-        return ResponseEntity.ok(Map.of("success", true));
+        try {
+            userService.updateUser(userId, email, displayName, telegramId, quotaBytes, nickname);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PostMapping("/users/delete")
@@ -125,6 +136,7 @@ public class AdminController {
             Map<String, Object> userMap = new HashMap<>();
             long usedBytes = storageService.calculateUsedBytes(user.getId());
             userMap.put("username", user.getDisplayName());
+            userMap.put("nickname", user.getNickname());
             userMap.put("usedBytes", usedBytes);
             userMap.put("quotaBytes", user.getQuotaBytes());
             usersList.add(userMap);
@@ -149,6 +161,7 @@ public class AdminController {
         status.put("configured", telegramBotService.isConfigured());
         status.put("connected", telegramBotService.isConnected());
         status.put("connectionError", telegramBotService.getConnectionError());
+        status.put("botUsername", telegramBotService.getBotUsername());
         return ResponseEntity.ok(status);
     }
 
@@ -165,8 +178,13 @@ public class AdminController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", success);
         if (success) {
-            result.put("message", "Telegram bot успешно подключен");
-            String testMessage = "<b>EjectCloud:</b>\nБот успешно подключен к админ-панели";
+            telegramBotService.setBotToken(botToken);
+            telegramBotService.setAdminChatId(adminChatId);
+            telegramBotService.testConnection();
+            telegramBotService.saveConfig();
+            result.put("botUsername", telegramBotService.getBotUsername());
+            result.put("message", "Бот подключен, проверен и сохранен");
+            String testMessage = "<b>EjectCloud:</b>\nБот успешно подключен и сохранен";
             telegramBotService.sendMessage(adminChatId, testMessage);
         } else {
             result.put("error", telegramBotService.getConnectionError());

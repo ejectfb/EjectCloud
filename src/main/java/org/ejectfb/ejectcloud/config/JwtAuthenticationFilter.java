@@ -36,12 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String header = request.getHeader("Authorization");
             if (header != null && header.startsWith("Bearer ") && header.length() > 7) {
                 String token = header.substring(7);
-                String telegramId = jwtService.validateAccessToken(token);
-                if (telegramId != null) {
-                    UserData user = userService.findUserByTelegramId(telegramId);
+                String subject = jwtService.validateAccessToken(token);
+                if (subject != null) {
+                    UserData user = userService.findUserById(subject);
+                    if (user == null) {
+                        user = userService.findUserByTelegramId(subject);
+                    }
                     if (user != null) {
                         AuthenticatedUser principal = new AuthenticatedUser(
-                            telegramId, user.getId(), user.getDisplayName(),
+                            user.getTelegramId(), user.getId(), user.getDisplayName(),
                             user.isAdmin(), user.isMustChangePassword());
                         UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(principal, null,
