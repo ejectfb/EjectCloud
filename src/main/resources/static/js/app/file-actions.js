@@ -61,7 +61,7 @@
             const folderPath = currentPath ? `${currentPath}/${folderName}` : folderName;
             const token = getAuthToken();
             
-            fetch(`/api/files/mkdir?token=${encodeURIComponent(token)}&path=${encodeURIComponent(folderPath)}`, {
+            authFetch(`/api/files/mkdir?path=${encodeURIComponent(folderPath)}`, {
                 method: 'POST'
             })
             .then(r => {
@@ -76,7 +76,7 @@
         const folderName = folderPath.split('/').pop();
         showDeleteConfirm(`Удалить папку "${folderName}"?`, () => {
             const token = getAuthToken();
-            fetch(`/api/files/folder?path=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
+            authFetch(`/api/files/folder?path=${encodeURIComponent(folderPath)}`, {
                 method: 'DELETE'
             })
             .then(r => {
@@ -90,13 +90,29 @@
     };
 
     window.downloadFile = function(fileId) {
-        const token = getAuthToken();
-        window.open(`/api/files/download?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`);
+        const a = document.createElement('a');
+        a.href = `/api/files/download?fileId=${encodeURIComponent(fileId)}`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        fetch(a.href, { headers: getAuthHeaders() })
+            .then(r => {
+                if (!r.ok) throw new Error('Download failed');
+                return r.blob();
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = fileId.split('/').pop();
+                a.click();
+                URL.revokeObjectURL(url);
+            })
+            .catch(e => showNotification('Ошибка скачивания: ' + e.message, 'error'))
+            .finally(() => a.remove());
     };
 
     window.shareFile = function(fileId) {
         const token = getAuthToken();
-        fetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -121,7 +137,7 @@
     
     window.copyExistingShare = function(fileId) {
         const token = getAuthToken();
-        fetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -150,7 +166,7 @@
     window.deleteShareLink = function(fileId) {
         showConfirm('Удалить ссылку на файл?', () => {
             const token = getAuthToken();
-            fetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+            authFetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}`, {
                 method: 'DELETE'
             })
             .then(r => {
@@ -192,7 +208,7 @@
         const fill = btn.querySelector('.progress-fill');
         const status = btn.querySelector('.status-text');
         
-        fetch(`/api/files/share-telegram?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/share-telegram?fileId=${encodeURIComponent(fileId)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -228,7 +244,7 @@
         const token = getAuthToken();
         const shareUrl = window.location.origin + '/share/' + fileId;
         
-        fetch(`/api/files/share-telegram-link?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}&shareUrl=${encodeURIComponent(shareUrl)}`, {
+        authFetch(`/api/files/share-telegram-link?fileId=${encodeURIComponent(fileId)}&shareUrl=${encodeURIComponent(shareUrl)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -306,7 +322,7 @@
 
     window.showQRForFile = function(fileId) {
         const token = getAuthToken();
-        fetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/share?fileId=${encodeURIComponent(fileId)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -335,7 +351,7 @@
         const fileName = fileId.split('/').pop();
         showDeleteConfirm(`Удалить файл "${fileName}"?`, () => {
             const token = getAuthToken();
-            fetch(`/api/files/delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+            authFetch(`/api/files/delete?id=${encodeURIComponent(fileId)}`, {
                 method: 'DELETE'
             })
             .then(r => {
@@ -351,7 +367,7 @@
     function permanentDeleteFileNow(fileId) {
         const fileName = fileId.split('/').pop();
         const token = getAuthToken();
-        fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}`, {
             method: 'DELETE'
         })
         .then(r => {
@@ -372,7 +388,7 @@
     function permanentDeleteFolderNow(folderPath) {
         const folderName = folderPath.split('/').pop();
         const token = getAuthToken();
-        fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}`, {
             method: 'DELETE'
         })
         .then(r => {
@@ -392,7 +408,7 @@
 
     function moveFile(fileId, targetFolder) {
         const token = getAuthToken();
-        fetch(`/api/files/move?fileId=${encodeURIComponent(fileId)}&targetFolder=${encodeURIComponent(targetFolder)}&token=${encodeURIComponent(token)}`, {
+        authFetch(`/api/files/move?fileId=${encodeURIComponent(fileId)}&targetFolder=${encodeURIComponent(targetFolder)}`, {
             method: 'POST'
         })
         .then(async r => {
@@ -420,7 +436,7 @@
 
     function logout() {
         if (refreshToken) {
-            fetch(`/api/auth/logout?refreshToken=${encodeURIComponent(refreshToken)}`, { method: 'POST' })
+            authFetch(`/api/auth/logout?refreshToken=${encodeURIComponent(refreshToken)}`, { method: 'POST' })
                 .catch(() => {}); // Игнорируем ошибки
         }
         
@@ -624,7 +640,7 @@
     window.clearTrash = function() {
         showConfirm('Очистить корзину? Все файлы будут удалены навсегда!', () => {
             const token = getAuthToken();
-            fetch(`/api/files/trash/clear?token=${encodeURIComponent(token)}`, {
+            authFetch('/api/files/trash/clear', {
                 method: 'DELETE'
             })
             .then(r => {
@@ -638,7 +654,7 @@
     window.deleteFromTrash = function(itemId) {
         showConfirm('Удалить навсегда? Это действие нельзя отменить!', () => {
             const token = getAuthToken();
-            fetch(`/api/files/trash/${encodeURIComponent(itemId)}?token=${encodeURIComponent(token)}`, {
+            authFetch(`/api/files/trash/${encodeURIComponent(itemId)}`, {
                 method: 'DELETE'
             })
             .then(r => {
@@ -653,7 +669,7 @@
         const itemName = itemId.split('/').pop();
         showConfirm(`Восстановить "${itemName}"?`, () => {
             const token = getAuthToken();
-            fetch(`/api/files/trash/restore/${encodeURIComponent(itemId)}?token=${encodeURIComponent(token)}`, {
+            authFetch(`/api/files/trash/restore/${encodeURIComponent(itemId)}`, {
                 method: 'POST'
             })
             .then(r => {
@@ -700,7 +716,7 @@
                 const validName = validateFileName(newName);
                 const token = getAuthToken();
                 
-                fetch(`/api/files/rename?fileId=${encodeURIComponent(fileId)}&newName=${encodeURIComponent(validName)}&token=${encodeURIComponent(token)}`, {
+                authFetch(`/api/files/rename?fileId=${encodeURIComponent(fileId)}&newName=${encodeURIComponent(validName)}`, {
                     method: 'POST'
                 })
                 .then(async r => {
@@ -730,7 +746,7 @@
                 const validName = validateFileName(newName);
                 const token = getAuthToken();
                 
-                fetch(`/api/files/rename-folder?folderPath=${encodeURIComponent(folderPath)}&newName=${encodeURIComponent(validName)}&token=${encodeURIComponent(token)}`, {
+                authFetch(`/api/files/rename-folder?folderPath=${encodeURIComponent(folderPath)}&newName=${encodeURIComponent(validName)}`, {
                     method: 'POST'
                 })
                 .then(async r => {

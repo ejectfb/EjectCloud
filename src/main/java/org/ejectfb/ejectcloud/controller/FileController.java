@@ -1,5 +1,6 @@
 package org.ejectfb.ejectcloud.controller;
 
+import org.ejectfb.ejectcloud.model.AuthenticatedUser;
 import org.ejectfb.ejectcloud.model.FileData;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
@@ -7,6 +8,8 @@ import org.ejectfb.ejectcloud.service.TelegramBotService;
 import org.ejectfb.ejectcloud.service.ArchiveService;
 import org.ejectfb.ejectcloud.service.JwtService;
 import org.ejectfb.ejectcloud.util.FormatUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.FileSystemResource;
@@ -55,18 +58,17 @@ public class FileController {
         this.telegramBotService = telegramBotService;
     }
 
-    private String requireUserId(String token) {
-        try {
-            String telegramId = jwtService.validateAccessToken(token);
-            if (telegramId != null) {
-                UserData user = storageService.getUserService().findUserByTelegramId(telegramId);
-                if (user != null) {
-                    return user.getId();
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Недействительный токен");
+    private AuthenticatedUser getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AuthenticatedUser user) {
+            return user;
         }
+        return null;
+    }
+
+    private String requireUserId() {
+        AuthenticatedUser user = getCurrentUser();
+        if (user != null) return user.getUserId();
         throw new RuntimeException("Недействительный токен");
     }
 
@@ -93,10 +95,9 @@ public class FileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<?> upload(@RequestParam String token, 
-                                   @RequestParam("file") MultipartFile file,
+    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file,
                                    @RequestParam(required = false) String path) {
-        String userId = requireUserId(token);
+        String userId = requireUserId();
         try {
             String originalName = file.getOriginalFilename();
             FileData fileData = storageService.uploadFile(userId, file, path);
@@ -126,8 +127,8 @@ public class FileController {
     }
     
     @PostMapping("/mkdir")
-    public ResponseEntity<?> createDirectory(@RequestParam String token, @RequestParam String path) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> createDirectory(@RequestParam String path) {
+        String userId = requireUserId();
         try {
             storageService.createDirectory(userId, path);
             return ResponseEntity.ok().build();
@@ -137,26 +138,26 @@ public class FileController {
     }
     
     @GetMapping("/folders")
-    public ResponseEntity<?> getFolders(@RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> getFolders() {
+        String userId = requireUserId();
         return ResponseEntity.ok(storageService.listFolders(userId));
     }
     
     @GetMapping("/trash")
-    public ResponseEntity<?> getTrash(@RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> getTrash() {
+        String userId = requireUserId();
         return ResponseEntity.ok(storageService.listTrash(userId));
     }
     
     @GetMapping("/trash/folders")
-    public ResponseEntity<?> getTrashFolders(@RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> getTrashFolders() {
+        String userId = requireUserId();
         return ResponseEntity.ok(storageService.listTrashFolders(userId));
     }
     
     @DeleteMapping("/trash/clear")
-    public ResponseEntity<?> clearTrash(@RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> clearTrash() {
+        String userId = requireUserId();
         try {
             storageService.clearTrash(userId);
             return ResponseEntity.ok().build();
@@ -166,8 +167,8 @@ public class FileController {
     }
     
     @DeleteMapping("/trash/{id}")
-    public ResponseEntity<?> deleteFromTrash(@PathVariable String id, @RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> deleteFromTrash(@PathVariable String id) {
+        String userId = requireUserId();
         try {
             storageService.deleteFromTrash(userId, id);
             return ResponseEntity.ok().build();
@@ -177,8 +178,8 @@ public class FileController {
     }
     
     @PostMapping("/trash/restore/{id}")
-    public ResponseEntity<?> restoreFromTrash(@PathVariable String id, @RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> restoreFromTrash(@PathVariable String id) {
+        String userId = requireUserId();
         try {
             storageService.restoreFromTrash(userId, id);
             return ResponseEntity.ok().build();
@@ -188,8 +189,8 @@ public class FileController {
     }
     
     @GetMapping("/quota")
-    public ResponseEntity<?> getQuotaInfo(@RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> getQuotaInfo() {
+        String userId = requireUserId();
         
         UserData userData = storageService.getOrCreateUser(userId, "user_" + userId, 1073741824L);
         long totalUsed = storageService.calculateTotalUsedBytes(userId);
@@ -211,28 +212,34 @@ public class FileController {
     }
 
     @GetMapping("/list")
-    public List<?> list(@RequestParam String token) {
-        String userId = requireUserId(token);
-        return storageService.listFiles(userId)
-                .stream()
-                .map(f -> {
-                    java.util.Map<String, Object> fileMap = new java.util.HashMap<>();
-                    fileMap.put("id", f.getId());
-                    fileMap.put("filename", f.getFilename());
-                    fileMap.put("size", f.getSizeBytes());
-                    fileMap.put("uploadedAt", f.getUploadedAt());
-                    fileMap.put("shared", f.isShared());
-                    if (f.isShared()) {
-                        fileMap.put("shareExpiresAt", f.getShareExpiresAt());
-                    }
-                    return fileMap;
-                }).collect(Collectors.toList());
+    public ResponseEntity<?> list() {
+        try {
+            String userId = requireUserId();
+            List<?> files = storageService.listFiles(userId)
+                    .stream()
+                    .map(f -> {
+                        java.util.Map<String, Object> fileMap = new java.util.HashMap<>();
+                        fileMap.put("id", f.getId());
+                        fileMap.put("filename", f.getFilename());
+                        fileMap.put("size", f.getSizeBytes());
+                        fileMap.put("uploadedAt", f.getUploadedAt());
+                        fileMap.put("shared", f.isShared());
+                        if (f.isShared()) {
+                            fileMap.put("shareExpiresAt", f.getShareExpiresAt());
+                        }
+                        return fileMap;
+                    }).collect(Collectors.toList());
+            return ResponseEntity.ok(files);
+        } catch (Exception e) {
+            log.warn("list error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/download")
-    public ResponseEntity<?> download(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> download(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             
             FileData fileData = storageService.listFiles(userId)
                     .stream()
@@ -268,9 +275,9 @@ public class FileController {
     }
 
     @GetMapping("/info")
-    public ResponseEntity<?> fileInfo(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> fileInfo(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             FileData fileData = storageService.listFiles(userId)
                 .stream()
                 .filter(f -> f.getId().equals(fileId))
@@ -308,9 +315,9 @@ public class FileController {
     }
 
     @GetMapping("/view")
-    public ResponseEntity<?> viewInline(@RequestParam String fileId, @RequestParam String token, @RequestHeader HttpHeaders headers) {
+    public ResponseEntity<?> viewInline(@RequestParam String fileId, @RequestHeader HttpHeaders headers) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             Path filePath = safeResolveUserFile(userId, fileId);
             if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
                 return ResponseEntity.notFound().build();
@@ -362,9 +369,9 @@ public class FileController {
     }
 
     @GetMapping("/text")
-    public ResponseEntity<?> viewText(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> viewText(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             Path filePath = safeResolveUserFile(userId, fileId);
             if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
                 return ResponseEntity.notFound().build();
@@ -455,9 +462,9 @@ public class FileController {
     }
 
     @PostMapping("/share")
-    public ResponseEntity<?> createShare(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> createShare(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             String shareId = storageService.createShare(userId, fileId);
             String shareUrl = "/share/" + shareId;
             return ResponseEntity.ok(java.util.Map.of("shareUrl", shareUrl));
@@ -469,9 +476,9 @@ public class FileController {
     }
     
     @DeleteMapping("/share")
-    public ResponseEntity<?> deleteShare(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> deleteShare(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             storageService.deleteShare(userId, fileId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -482,8 +489,8 @@ public class FileController {
     }
     
     @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteFile(@RequestParam String id, @RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> deleteFile(@RequestParam String id) {
+        String userId = requireUserId();
         try {
             storageService.moveToTrash(userId, id, false);
             return ResponseEntity.ok().build();
@@ -493,8 +500,8 @@ public class FileController {
     }
     
     @DeleteMapping("/folder")
-    public ResponseEntity<?> deleteFolder(@RequestParam String path, @RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> deleteFolder(@RequestParam String path) {
+        String userId = requireUserId();
         try {
             storageService.moveToTrash(userId, path, true);
             return ResponseEntity.ok().build();
@@ -504,8 +511,8 @@ public class FileController {
     }
     
     @DeleteMapping("/permanent-delete")
-    public ResponseEntity<?> permanentDelete(@RequestParam String id, @RequestParam String token) {
-        String userId = requireUserId(token);
+    public ResponseEntity<?> permanentDelete(@RequestParam String id) {
+        String userId = requireUserId();
         try {
             storageService.permanentDeleteFile(userId, id);
             return ResponseEntity.ok().build();
@@ -516,10 +523,9 @@ public class FileController {
     
     @PostMapping("/move")
     public ResponseEntity<?> moveFile(@RequestParam String fileId, 
-                                     @RequestParam String targetFolder, 
-                                     @RequestParam String token) {
+                                     @RequestParam String targetFolder) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             String newFileName = storageService.moveFile(userId, fileId, targetFolder);
             
             if (newFileName != null) {
@@ -539,10 +545,9 @@ public class FileController {
     
     @PostMapping("/rename")
     public ResponseEntity<?> renameFile(@RequestParam String fileId, 
-                                       @RequestParam String newName, 
-                                       @RequestParam String token) {
+                                       @RequestParam String newName) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             storageService.renameFile(userId, fileId, newName);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -554,10 +559,9 @@ public class FileController {
     
     @PostMapping("/rename-folder")
     public ResponseEntity<?> renameFolder(@RequestParam String folderPath, 
-                                         @RequestParam String newName, 
-                                         @RequestParam String token) {
+                                         @RequestParam String newName) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             storageService.renameFolder(userId, folderPath, newName);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -568,11 +572,10 @@ public class FileController {
     }
 
     @PostMapping("/archive")
-    public ResponseEntity<?> startArchive(@RequestParam String token,
-                                         @RequestParam(required = false, defaultValue = "") String path,
+    public ResponseEntity<?> startArchive(@RequestParam(required = false, defaultValue = "") String path,
                                          @RequestParam(required = false) String fileName) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             String safePath = URLEncoder.encode(path == null ? "" : path, StandardCharsets.UTF_8);
             String safeName = URLEncoder.encode(fileName == null ? "" : fileName, StandardCharsets.UTF_8);
             log.info("[archive] request start userId={} pathEnc='{}' fileNameEnc='{}'", userId, safePath, safeName);
@@ -587,9 +590,9 @@ public class FileController {
     }
 
     @GetMapping("/archive/status")
-    public ResponseEntity<?> archiveStatus(@RequestParam String token, @RequestParam String jobId) {
+    public ResponseEntity<?> archiveStatus(@RequestParam String jobId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             log.debug("[archive] status userId={} jobId={}", userId, jobId);
             return ResponseEntity.ok(archiveService.getStatus(userId, jobId));
         } catch (Exception e) {
@@ -601,9 +604,9 @@ public class FileController {
     }
 
     @GetMapping(value = "/archive/download", produces = "application/zip")
-    public ResponseEntity<StreamingResponseBody> downloadArchive(@RequestParam String token, @RequestParam String jobId) {
+    public ResponseEntity<StreamingResponseBody> downloadArchive(@RequestParam String jobId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             Path zipPath = archiveService.getZipPathForDownload(userId, jobId);
             if (!java.nio.file.Files.exists(zipPath)) {
                 return ResponseEntity.notFound().build();
@@ -643,9 +646,9 @@ public class FileController {
     }
 
     @DeleteMapping("/archive")
-    public ResponseEntity<?> deleteArchive(@RequestParam String token, @RequestParam String jobId) {
+    public ResponseEntity<?> deleteArchive(@RequestParam String jobId) {
         try {
-            String userId = requireUserId(token);
+            String userId = requireUserId();
             archiveService.deleteJob(userId, jobId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -654,10 +657,11 @@ public class FileController {
     }
     
     @PostMapping("/share-telegram")
-    public ResponseEntity<?> shareToTelegram(@RequestParam String fileId, @RequestParam String token) {
+    public ResponseEntity<?> shareToTelegram(@RequestParam String fileId) {
         try {
-            String userId = requireUserId(token);
-            String userTelegramId = jwtService.validateAccessToken(token);
+            String userId = requireUserId();
+            AuthenticatedUser currentUser = getCurrentUser();
+            String userTelegramId = currentUser != null ? currentUser.getTelegramId() : null;
             
             if (!telegramBotService.isConfigured()) {
                 return ResponseEntity.badRequest()
@@ -712,10 +716,11 @@ public class FileController {
     }
     
     @PostMapping("/share-telegram-link")
-    public ResponseEntity<?> shareLinkToTelegram(@RequestParam String fileId, @RequestParam String token, @RequestParam String shareUrl) {
+    public ResponseEntity<?> shareLinkToTelegram(@RequestParam String fileId, @RequestParam String shareUrl) {
         try {
-            String userId = requireUserId(token);
-            String userTelegramId = jwtService.validateAccessToken(token);
+            String userId = requireUserId();
+            AuthenticatedUser currentUser = getCurrentUser();
+            String userTelegramId = currentUser != null ? currentUser.getTelegramId() : null;
             
             if (!telegramBotService.isConfigured()) {
                 return ResponseEntity.badRequest()

@@ -1,5 +1,6 @@
 package org.ejectfb.ejectcloud.controller;
 
+import org.ejectfb.ejectcloud.model.AuthenticatedUser;
 import org.ejectfb.ejectcloud.model.SystemStats;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
@@ -8,6 +9,8 @@ import org.ejectfb.ejectcloud.service.SystemMonitorService;
 import org.ejectfb.ejectcloud.service.TelegramBotService;
 import org.ejectfb.ejectcloud.service.UserService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -15,14 +18,14 @@ import java.util.*;
 @RestController
 @RequestMapping("/admin/api")
 public class AdminController {
-    
+
     private final UserService userService;
     private final JwtService jwtService;
     private final FileStorageService storageService;
     private final SystemMonitorService monitorService;
     private final TelegramBotService telegramBotService;
 
-    public AdminController(UserService userService, JwtService jwtService, 
+    public AdminController(UserService userService, JwtService jwtService,
                           FileStorageService storageService, SystemMonitorService monitorService,
                           TelegramBotService telegramBotService) {
         this.userService = userService;
@@ -32,21 +35,16 @@ public class AdminController {
         this.telegramBotService = telegramBotService;
     }
 
-    private boolean isValidAdminToken(String token) {
-        String telegramId = jwtService.validateAccessToken(token);
-        if (telegramId != null) {
-            UserData user = userService.findUserByTelegramId(telegramId);
-            return user != null && user.isAdmin();
+    private AuthenticatedUser getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AuthenticatedUser user) {
+            return user;
         }
-        return false;
+        return null;
     }
 
     @GetMapping("/users")
-    public ResponseEntity<?> listUsers(@RequestParam String token) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> listUsers() {
         List<Map<String, Object>> users = new ArrayList<>();
         for (UserData user : userService.getAllUsers()) {
             Map<String, Object> userMap = new HashMap<>();
@@ -66,35 +64,23 @@ public class AdminController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<?> createUser(@RequestParam String token,
-                                       @RequestParam String email,
-                                       @RequestParam String displayName,
-                                       @RequestParam String telegramId,
-                                       @RequestParam(required = false) Long quotaBytes) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> createUser(@RequestParam String email,
+                                        @RequestParam String displayName,
+                                        @RequestParam String telegramId,
+                                        @RequestParam(required = false) Long quotaBytes) {
         if (userService.findUserByEmail(email) != null) {
             return ResponseEntity.badRequest().body(Map.of("error", "User already exists"));
         }
-        
         long quota = quotaBytes != null ? quotaBytes : 1073741824L;
         UserData userData = userService.createUser(email, email, displayName, telegramId, false);
         userData.setQuotaBytes(quota);
         userService.saveUserData(userData.getId(), userData);
-        
         return ResponseEntity.ok(userData);
     }
 
     @PostMapping("/quota")
-    public ResponseEntity<?> updateQuota(@RequestParam String token,
-                                        @RequestParam String userId,
-                                        @RequestParam long quotaBytes) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> updateQuota(@RequestParam String userId,
+                                         @RequestParam long quotaBytes) {
         UserData userData = userService.loadUserData(userId);
         if (userData != null) {
             userData.setQuotaBytes(quotaBytes);
@@ -103,60 +89,37 @@ public class AdminController {
         }
         return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
     }
-    
+
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestParam String token,
-                                          @RequestParam String userId) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> resetPassword(@RequestParam String userId) {
         userService.resetPassword(userId);
         return ResponseEntity.ok(Map.of("success", true));
     }
-    
+
     @PostMapping("/users/edit")
-    public ResponseEntity<?> editUser(@RequestParam String token,
-                                     @RequestParam String userId,
-                                     @RequestParam String email,
-                                     @RequestParam String displayName,
-                                     @RequestParam String telegramId,
-                                     @RequestParam long quotaBytes) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> editUser(@RequestParam String userId,
+                                      @RequestParam String email,
+                                      @RequestParam String displayName,
+                                      @RequestParam String telegramId,
+                                      @RequestParam long quotaBytes) {
         userService.updateUser(userId, email, displayName, telegramId, quotaBytes);
         return ResponseEntity.ok(Map.of("success", true));
     }
-    
+
     @PostMapping("/users/delete")
-    public ResponseEntity<?> deleteUser(@RequestParam String token,
-                                       @RequestParam String userId) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> deleteUser(@RequestParam String userId) {
         userService.deleteUser(userId);
         return ResponseEntity.ok(Map.of("success", true));
     }
-    
+
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@RequestParam String token) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> getDashboard() {
         Map<String, Object> dashboard = new HashMap<>();
-        
         SystemStats.StatsEntry current = monitorService.getCurrentStats();
         dashboard.put("system", current);
-        
         List<UserData> users = userService.getAllUsers();
         long totalUsed = users.stream().mapToLong(u -> storageService.calculateUsedBytes(u.getId())).sum();
         long totalQuota = users.stream().mapToLong(UserData::getQuotaBytes).sum();
-        
-        // Подготавливаем список пользователей с данными об использовании
         List<Map<String, Object>> usersList = new ArrayList<>();
         for (UserData user : users) {
             Map<String, Object> userMap = new HashMap<>();
@@ -166,55 +129,39 @@ public class AdminController {
             userMap.put("quotaBytes", user.getQuotaBytes());
             usersList.add(userMap);
         }
-        
         dashboard.put("users", Map.of(
             "count", users.size(),
             "totalUsed", totalUsed,
             "totalQuota", totalQuota,
             "list", usersList
         ));
-        
         return ResponseEntity.ok(dashboard);
     }
-    
+
     @GetMapping("/system/history")
-    public ResponseEntity<?> getSystemHistory(@RequestParam String token,
-                                              @RequestParam(defaultValue = "1h") String period) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
+    public ResponseEntity<?> getSystemHistory(@RequestParam(defaultValue = "1h") String period) {
         return ResponseEntity.ok(monitorService.getFilteredStats(period));
     }
-    
+
     @GetMapping("/telegram/status")
-    public ResponseEntity<?> getTelegramStatus(@RequestParam String token) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-        
+    public ResponseEntity<?> getTelegramStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("configured", telegramBotService.isConfigured());
         status.put("connected", telegramBotService.isConnected());
         status.put("connectionError", telegramBotService.getConnectionError());
         return ResponseEntity.ok(status);
     }
-    
+
     @PostMapping("/telegram/test")
-    public ResponseEntity<?> testTelegramConnection(@RequestParam String token,
-                                                    @RequestParam String botToken,
-                                                    @RequestParam String adminChatId) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
+    public ResponseEntity<?> testTelegramConnection(@RequestParam String botToken,
+                                                     @RequestParam String adminChatId) {
         if (botToken == null || botToken.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Bot token is required"));
         }
         if (adminChatId == null || adminChatId.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Admin Chat ID is required"));
         }
-        
         boolean success = telegramBotService.testConnection(botToken);
-        
         Map<String, Object> result = new HashMap<>();
         result.put("success", success);
         if (success) {
@@ -224,33 +171,24 @@ public class AdminController {
         } else {
             result.put("error", telegramBotService.getConnectionError());
         }
-        
         return ResponseEntity.ok(result);
     }
-    
+
     @PostMapping("/telegram/save")
-    public ResponseEntity<?> saveTelegramConfig(@RequestParam String token,
-                                                @RequestParam String botToken,
-                                                @RequestParam String adminChatId) {
-        if (!isValidAdminToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
+    public ResponseEntity<?> saveTelegramConfig(@RequestParam String botToken,
+                                                 @RequestParam String adminChatId) {
         if (botToken == null || botToken.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Bot token is required"));
         }
         if (adminChatId == null || adminChatId.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Admin Chat ID is required"));
         }
-        
         telegramBotService.setBotToken(botToken);
         telegramBotService.setAdminChatId(adminChatId);
-        
         boolean success = telegramBotService.testConnection();
-        
         if (success) {
             telegramBotService.saveConfig();
         }
-        
         Map<String, Object> result = new HashMap<>();
         result.put("success", success);
         if (success) {
@@ -260,7 +198,6 @@ public class AdminController {
         } else {
             result.put("error", telegramBotService.getConnectionError());
         }
-        
         return ResponseEntity.ok(result);
     }
 }

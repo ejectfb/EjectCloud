@@ -45,7 +45,7 @@ async function login(event) {
 
 async function checkUserStatus() {
     try {
-        const response = await fetch(`/api/auth/validate?token=${accessToken}`);
+        const response = await fetch('/api/auth/validate', { headers: { 'Authorization': 'Bearer ' + accessToken } });
         const data = await response.json();
         
         if (data.ok) {
@@ -102,7 +102,8 @@ async function changePassword(event) {
         const response = await fetch('/api/auth/change-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `token=${accessToken}&currentPassword=${encodeURIComponent(currentPassword)}&newPassword=${encodeURIComponent(newPassword)}`
+            body: `currentPassword=${encodeURIComponent(currentPassword)}&newPassword=${encodeURIComponent(newPassword)}`,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + accessToken }
         });
         
         const data = await response.json();
@@ -133,8 +134,8 @@ async function updateProfile(event) {
     try {
         const response = await fetch('/api/auth/update-profile', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `token=${accessToken}&email=${encodeURIComponent(email)}&displayName=${encodeURIComponent(displayName)}`
+            body: `email=${encodeURIComponent(email)}&displayName=${encodeURIComponent(displayName)}`,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Bearer ' + accessToken }
         });
         
         const data = await response.json();

@@ -1,10 +1,13 @@
 package org.ejectfb.ejectcloud.controller;
 
+import org.ejectfb.ejectcloud.model.AuthenticatedUser;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.JwtService;
 import org.ejectfb.ejectcloud.service.UserService;
 import org.ejectfb.ejectcloud.dto.JwtResponseDto;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -12,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    
+
     private final UserService userService;
     private final JwtService jwtService;
 
@@ -21,39 +24,41 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    private AuthenticatedUser getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AuthenticatedUser user) {
+            return user;
+        }
+        return null;
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
         UserData user = userService.authenticate(email, password);
         if (user != null) {
             String accessToken = jwtService.generateAccessToken(user.getTelegramId());
             String refreshToken = jwtService.generateRefreshToken(user.getTelegramId());
-            
             return ResponseEntity.ok(new JwtResponseDto(accessToken, refreshToken, user.getTelegramId()));
         }
-        
         return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
     }
-    
+
     @GetMapping("/validate")
-    public ResponseEntity<?> validate(@RequestParam String token) {
-        String telegramId = jwtService.validateAccessToken(token);
-        if (telegramId != null) {
-            UserData user = userService.findUserByTelegramId(telegramId);
-            if (user != null) {
-                return ResponseEntity.ok(Map.of(
-                    "ok", true, 
-                    "user", user.getDisplayName(),
-                    "userId", user.getId(),
-                    "telegramId", telegramId,
-                    "isAdmin", user.isAdmin(),
-                    "mustChangePassword", user.isMustChangePassword()
-                ));
-            }
+    public ResponseEntity<?> validate() {
+        AuthenticatedUser user = getCurrentUser();
+        if (user != null) {
+            return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "user", user.getDisplayName(),
+                "userId", user.getUserId(),
+                "telegramId", user.getTelegramId(),
+                "isAdmin", user.isAdmin(),
+                "mustChangePassword", user.isMustChangePassword()
+            ));
         }
-        
         return ResponseEntity.status(401).body(Map.of("ok", false));
     }
-    
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
         String telegramId = jwtService.validateRefreshToken(refreshToken);
@@ -61,51 +66,55 @@ public class AuthController {
             String newAccessToken = jwtService.generateAccessToken(telegramId);
             return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
         }
-        
         return ResponseEntity.status(401).body(Map.of("error", "Invalid refresh token"));
     }
-    
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestParam String refreshToken) {
         jwtService.revokeRefreshToken(refreshToken);
         return ResponseEntity.ok(Map.of("ok", true));
     }
-    
+
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestParam String token,
-                                          @RequestParam String currentPassword,
-                                          @RequestParam String newPassword) {
-        String telegramId = jwtService.validateAccessToken(token);
-        if (telegramId == null) {
+    public ResponseEntity<?> changePassword(@RequestParam String currentPassword,
+                                            @RequestParam String newPassword) {
+        AuthenticatedUser user = getCurrentUser();
+        if (user == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
         }
-        
-        UserData user = userService.findUserByTelegramId(telegramId);
-        if (user == null) {
+        UserData userData = userService.loadUserData(user.getUserId());
+        if (userData == null) {
             return ResponseEntity.status(404).body(Map.of("error", "User not found"));
         }
-        
-        UserData authUser = userService.authenticate(user.getEmail(), currentPassword);
+        UserData authUser = userService.authenticate(userData.getEmail(), currentPassword);
         if (authUser == null) {
             return ResponseEntity.status(400).body(Map.of("error", "Current password is incorrect"));
         }
-        
-        userService.updatePassword(user.getId(), newPassword);
+        userService.updatePassword(user.getUserId(), newPassword);
         return ResponseEntity.ok(Map.of("success", true));
     }
-    
+
+    @GetMapping("/check")
+    public ResponseEntity<?> check() {
+        AuthenticatedUser user = getCurrentUser();
+        return ResponseEntity.ok(Map.of(
+            "authenticated", user != null,
+            "userId", user != null ? user.getUserId() : null,
+            "displayName", user != null ? user.getDisplayName() : null,
+            "isAdmin", user != null ? user.isAdmin() : false
+        ));
+    }
+
     @PostMapping("/update-profile")
-    public ResponseEntity<?> updateProfile(@RequestParam String token,
-                                         @RequestParam String email,
-                                         @RequestParam String displayName) {
-        String telegramId = jwtService.validateAccessToken(token);
-        if (telegramId == null) {
+    public ResponseEntity<?> updateProfile(@RequestParam String email,
+                                           @RequestParam String displayName) {
+        AuthenticatedUser user = getCurrentUser();
+        if (user == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
         }
-        
-        UserData user = userService.findUserByTelegramId(telegramId);
-        if (user != null) {
-            userService.updateProfile(user.getId(), email, displayName);
+        UserData userData = userService.loadUserData(user.getUserId());
+        if (userData != null) {
+            userService.updateProfile(user.getUserId(), email, displayName);
         }
         return ResponseEntity.ok(Map.of("success", true));
     }

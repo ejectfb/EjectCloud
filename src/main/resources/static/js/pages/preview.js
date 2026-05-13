@@ -47,10 +47,6 @@
         return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
     }
 
-    function getToken() {
-        return accessToken;
-    }
-
     async function tryRefreshToken() {
         if (!refreshToken) return false;
         try {
@@ -66,24 +62,20 @@
         }
     }
 
-    function replaceToken(url) {
-        const u = new URL(url, window.location.origin);
-        u.searchParams.set('token', accessToken);
-        return u.toString();
-    }
-
     async function fetchWithRefresh(url, options) {
+        if (!options) options = {};
+        if (!options.headers) options.headers = {};
+        options.headers['Authorization'] = 'Bearer ' + accessToken;
         let r = await fetch(url, options);
         if (r.status !== 401) return r;
         const ok = await tryRefreshToken();
         if (!ok) return r;
-        return fetch(replaceToken(url), options);
+        options.headers['Authorization'] = 'Bearer ' + accessToken;
+        return fetch(url, options);
     }
 
     function apiUrl(path) {
-        const token = getToken();
-        const glue = path.includes('?') ? '&' : '?';
-        return path + glue + 'token=' + encodeURIComponent(token);
+        return path;
     }
 
     function makeBtn(label, cls, onClick) {
@@ -170,11 +162,16 @@
 
     function renderActions(info) {
         $actions.innerHTML = '';
-        const token = getToken();
 
-        const downloadUrl = '/api/files/download?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
         $actions.appendChild(makeBtn('Скачать', 'primary', () => {
-            window.location.href = downloadUrl;
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            fetchWithRefresh('/api/files/download?fileId=' + encodeURIComponent(fileId))
+                .then(r => { if (!r.ok) throw new Error('Download failed'); return r.blob(); })
+                .then(blob => { const url = URL.createObjectURL(blob); a.href = url; a.download = info.filename || fileId; a.click(); URL.revokeObjectURL(url); })
+                .catch(e => toast('Ошибка: ' + e.message))
+                .finally(() => a.remove());
         }));
 
         $actions.appendChild(makeBtn('Поделиться', 'light', openShareModal));
@@ -188,7 +185,7 @@
             body.append('fileId', fileId);
             body.append('newName', newName);
 
-            const res = await fetchWithRefresh('/api/files/rename?token=' + encodeURIComponent(getToken()), { method: 'POST', body });
+            const res = await fetchWithRefresh('/api/files/rename', { method: 'POST', body });
             if (!res.ok) {
                 toast('Ошибка переименования');
                 return;
@@ -198,8 +195,7 @@
 
         const delBtn = makeBtn('', 'danger icon-only', async () => {
             if (!confirm('Переместить в корзину?')) return;
-            const delUrl = '/api/files/delete?id=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
-            const res = await fetchWithRefresh(delUrl, { method: 'DELETE' });
+            const res = await fetchWithRefresh('/api/files/delete?id=' + encodeURIComponent(fileId), { method: 'DELETE' });
             if (!res.ok) {
                 toast('Ошибка удаления');
                 return;
@@ -221,21 +217,21 @@
     }
 
     async function renderPreview(info) {
-        const token = getToken();
-        const viewUrl = '/api/files/view?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
-
+        const viewParams = 'fileId=' + encodeURIComponent(fileId);
         const ct = (info.contentType || '').toLowerCase();
         $preview.innerHTML = '';
 
-        // Basic allow-list for inline preview
         const isImage = ct.startsWith('image/') && !ct.includes('svg');
         const isVideo = ct.startsWith('video/');
         const isTextByType = ct.startsWith('text/') || ct === 'application/json' || ct === 'application/xml';
 
         if (isImage) {
             const img = document.createElement('img');
-            img.src = viewUrl;
             img.alt = info.filename || 'image';
+            fetchWithRefresh('/api/files/view?' + viewParams)
+                .then(r => { if (r.ok) return r.blob(); throw new Error(); })
+                .then(blob => { img.src = URL.createObjectURL(blob); })
+                .catch(() => { img.alt = 'Failed to load'; });
             $preview.appendChild(img);
             return;
         }
@@ -245,15 +241,16 @@
             v.controls = true;
             v.playsInline = true;
             v.preload = 'metadata';
-            v.src = viewUrl;
+            fetchWithRefresh('/api/files/view?' + viewParams)
+                .then(r => { if (r.ok) return r.blob(); throw new Error(); })
+                .then(blob => { v.src = URL.createObjectURL(blob); })
+                .catch(() => {});
             $preview.appendChild(v);
             return;
         }
 
-        // Try text preview for small files even if content-type is unknown (.vpn, .conf, etc.)
         if (isTextByType || (info.size !== undefined && info.size !== null && Number(info.size) <= 2 * 1024 * 1024)) {
-            const textUrl = '/api/files/text?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(token);
-            const r = await fetchWithRefresh(textUrl);
+            const r = await fetchWithRefresh('/api/files/text?' + viewParams);
             if (r.ok) {
                 const t = await r.text();
 

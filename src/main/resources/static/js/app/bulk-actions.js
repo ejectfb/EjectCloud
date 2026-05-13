@@ -79,7 +79,6 @@
     function startArchiveAndDownload(folderPath, fileName, title) {
         const token = getAuthToken();
         const body = new URLSearchParams();
-        body.append('token', token);
         body.append('path', folderPath || '');
         if (fileName) body.append('fileName', fileName);
 
@@ -93,7 +92,7 @@
             lines: []
         });
 
-        fetch('/api/files/archive', { method: 'POST', body })
+        authFetch('/api/files/archive', { method: 'POST', body })
             .then(r => r.json().then(j => ({ ok: r.ok, j })))
             .then(({ ok, j }) => {
                 if (!ok) throw new Error((j && j.error) ? j.error : 'Ошибка архивации');
@@ -103,7 +102,7 @@
                 }
 
                 const poll = setInterval(() => {
-                    fetch(`/api/files/archive/status?token=${encodeURIComponent(token)}&jobId=${encodeURIComponent(jobId)}`)
+                    authFetch(`/api/files/archive/status?jobId=${encodeURIComponent(jobId)}`)
                         .then(r2 => r2.json().then(j2 => ({ ok: r2.ok, j2 })))
                         .then(({ ok: ok2, j2 }) => {
                             if (!ok2) throw new Error((j2 && j2.error) ? j2.error : 'Ошибка статуса');
@@ -117,20 +116,20 @@
 
                             if (j2.state === 'done') {
                                 clearInterval(poll);
-                                const url = `/api/files/archive/download?token=${encodeURIComponent(token)}&jobId=${encodeURIComponent(jobId)}`;
+                                const dlUrl = `/api/files/archive/download?jobId=${encodeURIComponent(jobId)}`;
 
                                 if (window.TaskCenter && window.TaskCenter.update && taskId) {
                                     window.TaskCenter.update(taskId, {
                                         state: 'done',
                                         percent: 100,
-                                        downloadUrl: url,
+                                        downloadUrl: dlUrl,
                                         meta: { type: 'archive', jobId }
                                     });
                                 }
 
                                 // Desktop best-effort auto download (mobile browsers may block)
                                 if (!isMobileLayout()) {
-                                    try { window.open(url); } catch {}
+                                    downloadArchiveFile(dlUrl);
                                 }
                             }
                             if (j2.state === 'error') {
@@ -241,13 +240,12 @@
         if (total === 0) return;
 
         showConfirm(`Переместить ${total} элементов в корзину?`, () => {
-            const token = getAuthToken();
             const promises = [];
             files.forEach(fileId => {
-                promises.push(fetch(`/api/files/delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+                promises.push(authFetch(`/api/files/delete?id=${encodeURIComponent(fileId)}`, { method: 'DELETE' }));
             });
             folders.forEach(folderPath => {
-                promises.push(fetch(`/api/files/folder?path=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+                promises.push(authFetch(`/api/files/folder?path=${encodeURIComponent(folderPath)}`, { method: 'DELETE' }));
             });
 
             Promise.all(promises.map(p => p.catch(e => ({ error: true, message: e.message }))))
@@ -275,13 +273,12 @@
         if (total === 0) return;
 
         showConfirm(`Удалить ${total} элементов БЕЗВОЗВРАТНО? Это действие нельзя отменить!`, () => {
-            const token = getAuthToken();
             const promises = [];
             files.forEach(fileId => {
-                promises.push(fetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+                promises.push(authFetch(`/api/files/permanent-delete?id=${encodeURIComponent(fileId)}`, { method: 'DELETE' }));
             });
             folders.forEach(folderPath => {
-                promises.push(fetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}&token=${encodeURIComponent(token)}`, { method: 'DELETE' }));
+                promises.push(authFetch(`/api/files/permanent-delete?id=${encodeURIComponent(folderPath)}`, { method: 'DELETE' }));
             });
 
             Promise.all(promises.map(p => p.catch(e => ({ error: true, message: e.message }))))
@@ -309,9 +306,8 @@
             const files = window._bulkMoveFileIds || selectedByKind('file');
             if (files.length === 0) return;
 
-            const token = getAuthToken();
             const promises = files.map(fileId =>
-                fetch(`/api/files/move?fileId=${encodeURIComponent(fileId)}&targetFolder=${encodeURIComponent(selectedTargetFolder)}&token=${encodeURIComponent(token)}`, {
+                authFetch(`/api/files/move?fileId=${encodeURIComponent(fileId)}&targetFolder=${encodeURIComponent(selectedTargetFolder)}`, {
                     method: 'POST'
                 })
             );
@@ -338,3 +334,23 @@
             originalConfirmMove();
         }
     };
+
+    function downloadArchiveFile(url) {
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        fetch(url, { headers: getAuthHeaders() })
+            .then(r => {
+                if (!r.ok) throw new Error('Download failed');
+                return r.blob();
+            })
+            .then(blob => {
+                const objUrl = URL.createObjectURL(blob);
+                a.href = objUrl;
+                a.download = 'archive.zip';
+                a.click();
+                URL.revokeObjectURL(objUrl);
+            })
+            .catch(e => showNotification('Ошибка скачивания: ' + e.message, 'error'))
+            .finally(() => a.remove());
+    }

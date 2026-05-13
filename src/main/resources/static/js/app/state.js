@@ -41,6 +41,38 @@
     let uploadSpeedLine = '';
     let uploadSizeLine = '';
 
+    function getAuthHeaders() {
+        return { 'Authorization': 'Bearer ' + (accessToken || '') };
+    }
+
+    function debugAuth() {
+        console.log('accessToken present:', !!accessToken);
+        console.log('accessToken length:', accessToken ? accessToken.length : 0);
+        if (accessToken) console.log('accessToken preview:', accessToken.slice(0, 20) + '...');
+    }
+
+    function authFetch(url, options = {}) {
+        return fetch(url, {
+            method: options.method || 'GET',
+            headers: { 'Authorization': 'Bearer ' + (accessToken || ''), ...(options.headers || {}) },
+            body: options.body,
+            signal: options.signal
+        });
+    }
+
+    async function checkJson(response) {
+        const text = await response.text();
+        if (!text) {
+            if (!response.ok) throw new Error('HTTP ' + response.status + ' ' + response.statusText);
+            return null;
+        }
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('HTTP ' + response.status + ': ' + text.slice(0, 200));
+        }
+    }
+
     function itemKey(kind, id) {
         return kind + ':' + id;
     }
@@ -116,7 +148,7 @@
         if (!task) return;
         if (task.meta && task.meta.type === 'archive' && task.meta.jobId) {
             const token = getAuthToken();
-            fetch(`/api/files/archive?token=${encodeURIComponent(token)}&jobId=${encodeURIComponent(task.meta.jobId)}`, {
+            authFetch(`/api/files/archive?jobId=${encodeURIComponent(task.meta.jobId)}`, {
                 method: 'DELETE'
             }).catch(() => {});
         }

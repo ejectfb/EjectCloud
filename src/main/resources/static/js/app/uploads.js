@@ -11,7 +11,7 @@
         const token = getAuthToken();
         let quotaInfo;
         try {
-            const response = await fetch(`/api/files/quota?token=${encodeURIComponent(token)}`);
+            const response = await authFetch('/api/files/quota');
             quotaInfo = await response.json();
         } catch (e) {
             showNotification('Ошибка получения информации о квоте', 'error');
@@ -77,8 +77,7 @@
     function _processDroppedFiles(files) {
         if (files.length === 0) return;
 
-        const token = getAuthToken();
-        fetch(`/api/files/quota?token=${encodeURIComponent(token)}`)
+        authFetch('/api/files/quota')
             .then(r => r.json())
             .then(quotaInfo => {
                 const filesToUpload = [];
@@ -176,11 +175,10 @@
         tryRefreshToken().then(() => {
             const fd = new FormData();
             fd.append('file', file);
-            fd.append('token', getAuthToken());
             if (path) fd.append('path', path);
 
             // Получаем таймаут из конфига
-            fetch(`/api/files/config/upload-timeout?token=${encodeURIComponent(getAuthToken())}`)
+            authFetch('/api/files/config/upload-timeout')
                 .then(r => r.json())
                 .then(config => {
                     startUpload(config.timeout, fd);
@@ -196,6 +194,7 @@
             
         function startUpload(timeout, fd) {
             const xhr = new XMLHttpRequest();
+            const authToken = getAuthToken();
             let startTime = Date.now();
             let lastLoaded = 0;
             let lastTime = startTime;
@@ -277,6 +276,7 @@
             
             xhr.timeout = timeout;
             xhr.open('POST', '/api/files/upload');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
             xhr.send(fd);
         }
     }

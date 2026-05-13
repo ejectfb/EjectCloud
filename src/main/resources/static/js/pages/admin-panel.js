@@ -3,6 +3,16 @@ let accessToken = null;
 let refreshToken = null;
 let refreshInterval = null;
 
+function getAuthHeaders() {
+    return { 'Authorization': 'Bearer ' + (accessToken || '') };
+}
+
+function authFetch(url, options = {}) {
+    if (!options.headers) options.headers = {};
+    Object.assign(options.headers, getAuthHeaders());
+    return fetch(url, options);
+}
+
 function isMobileLayout() {
     return window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
 }
@@ -194,7 +204,7 @@ function convertOldToken(oldToken) {
 }
 
 function validateToken() {
-    fetch('/api/auth/validate?token=' + accessToken)
+    authFetch('/api/auth/validate')
         .then(r => r.json())
         .then(data => {
             if (data.ok) {
@@ -252,7 +262,7 @@ function showError() {
 
 function logout() {
     if (refreshToken) {
-        fetch('/api/auth/logout?refreshToken=' + refreshToken, { method: 'POST' })
+        authFetch('/api/auth/logout?refreshToken=' + refreshToken, { method: 'POST' })
             .catch(() => {});
     }
     
@@ -308,7 +318,7 @@ function loadDashboard() {
         return;
     }
     
-    fetch('/admin/api/dashboard?token=' + accessToken)
+    authFetch('/admin/api/dashboard')
         .then(r => {
             if (r.status === 401) {
                 logout();
@@ -407,7 +417,7 @@ function loadUsers() {
         return;
     }
     
-    fetch('/admin/api/users?token=' + accessToken)
+    authFetch('/admin/api/users')
         .then(r => {
             if (r.status === 401) {
                 logout();
@@ -470,13 +480,12 @@ function createUser() {
     }
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('email', email);
     params.append('displayName', displayName);
     params.append('telegramId', telegramId);
     params.append('quotaBytes', quotaMB * 1024 * 1024);
     
-    fetch('/admin/api/users', {
+    authFetch('/admin/api/users', {
         method: 'POST',
         body: params
     })
@@ -505,11 +514,10 @@ function updateQuota(telegramId) {
     }
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('telegramId', telegramId);
     params.append('quotaBytes', quotaBytes);
     
-    fetch('/admin/api/quota', {
+    authFetch('/admin/api/quota', {
         method: 'POST',
         body: params
     })
@@ -528,7 +536,7 @@ function loadHistory(period = '1h', type = 'cpu') {
         return;
     }
     
-    fetch('/admin/api/system/history?token=' + accessToken + '&period=' + period)
+    authFetch('/admin/api/system/history?period=' + period)
         .then(r => {
             if (r.status === 401) {
                 logout();
@@ -708,14 +716,13 @@ function saveUserEdit() {
     }
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('userId', editingUserId);
     params.append('email', newEmail);
     params.append('displayName', newDisplayName);
     params.append('telegramId', newTelegramId);
     params.append('quotaBytes', newQuotaMB * 1024 * 1024);
     
-    fetch('/admin/api/users/edit', {
+    authFetch('/admin/api/users/edit', {
         method: 'POST',
         body: params
     })
@@ -744,10 +751,9 @@ function resetPassword(userId) {
     }
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('userId', userId);
     
-    fetch('/admin/api/reset-password', {
+    authFetch('/admin/api/reset-password', {
         method: 'POST',
         body: params
     })
@@ -769,10 +775,9 @@ function deleteUser(userId, displayName) {
     }
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('userId', userId);
     
-    fetch('/admin/api/users/delete', {
+    authFetch('/admin/api/users/delete', {
         method: 'POST',
         body: params
     })
@@ -827,7 +832,7 @@ function loadTelegramSettings() {
         return;
     }
     
-    fetch('/admin/api/telegram/status?token=' + accessToken)
+    authFetch('/admin/api/telegram/status')
         .then(r => {
             if (r.status === 401) {
                 logout();
@@ -876,11 +881,10 @@ function testTelegramConnection() {
     testBtn.textContent = 'Подключение...';
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('botToken', botToken);
     params.append('adminChatId', adminChatId);
     
-    fetch('/admin/api/telegram/test', {
+    authFetch('/admin/api/telegram/test', {
         method: 'POST',
         body: params
     })
@@ -925,11 +929,10 @@ function saveTelegramConfig() {
     saveBtn.textContent = 'Сохранение...';
     
     const params = new URLSearchParams();
-    params.append('token', accessToken);
     params.append('botToken', botToken);
     params.append('adminChatId', adminChatId);
     
-    fetch('/admin/api/telegram/save', {
+    authFetch('/admin/api/telegram/save', {
         method: 'POST',
         body: params
     })

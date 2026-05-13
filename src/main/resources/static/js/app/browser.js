@@ -351,7 +351,7 @@
     function doValidate() {
         if (accessToken) {
             console.log('Validating JWT token');
-            fetch(`/api/auth/validate?token=${encodeURIComponent(accessToken)}`)
+            authFetch('/api/auth/validate')
                 .then(r => r.json())
                 .then(j => {
                     if (j.ok) {
@@ -446,13 +446,12 @@
     }
 
     function loadFiles() {
-        const token = getAuthToken();
         Promise.all([
-            fetch(`/api/files/list?token=${encodeURIComponent(token)}`).then(r => r.json()),
-            fetch(`/api/files/folders?token=${encodeURIComponent(token)}`).then(r => r.json()),
-            fetch(`/api/files/trash?token=${encodeURIComponent(token)}`).then(r => r.json()),
-            fetch(`/api/files/trash/folders?token=${encodeURIComponent(token)}`).then(r => r.json()),
-            fetch(`/api/files/quota?token=${encodeURIComponent(token)}`).then(r => r.json())
+            authFetch('/api/files/list').then(checkJson),
+            authFetch('/api/files/folders').then(checkJson),
+            authFetch('/api/files/trash').then(checkJson),
+            authFetch('/api/files/trash/folders').then(checkJson),
+            authFetch('/api/files/quota').then(checkJson)
         ])
         .then(([files, folders, trash, trashFoldersData, quota]) => {
             allFiles = files;
