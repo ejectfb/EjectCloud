@@ -3,8 +3,10 @@ package org.ejectfb.ejectcloud.controller;
 import org.ejectfb.ejectcloud.model.FileData;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
+import org.ejectfb.ejectcloud.service.TelegramBotService;
 import org.ejectfb.ejectcloud.service.ArchiveService;
 import org.ejectfb.ejectcloud.service.JwtService;
+import org.ejectfb.ejectcloud.util.FormatUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.FileSystemResource;
@@ -37,14 +39,20 @@ public class FileController {
     private final FileStorageService storageService;
     private final JwtService jwtService;
     private final ArchiveService archiveService;
+    private final TelegramBotService telegramBotService;
     
     @Value("${ejectcloud.upload.timeout:10800000}")
     private long uploadTimeout;
 
-    public FileController(FileStorageService storageService, JwtService jwtService, ArchiveService archiveService) {
+    @Value("${ejectcloud.base-url:https://localhost:8443}")
+    private String baseUrl;
+
+    public FileController(FileStorageService storageService, JwtService jwtService, ArchiveService archiveService,
+                          TelegramBotService telegramBotService) {
         this.storageService = storageService;
         this.jwtService = jwtService;
         this.archiveService = archiveService;
+        this.telegramBotService = telegramBotService;
     }
 
     private String requireUserId(String token) {
@@ -644,4 +652,117 @@ public class FileController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+    
+    @PostMapping("/share-telegram")
+    public ResponseEntity<?> shareToTelegram(@RequestParam String fileId, @RequestParam String token) {
+        try {
+            String userId = requireUserId(token);
+            String userTelegramId = jwtService.validateAccessToken(token);
+            
+            if (!telegramBotService.isConfigured()) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Telegram бот не настроен"));
+            }
+            
+            if (userTelegramId == null || userTelegramId.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Telegram ID пользователя не найден"));
+            }
+            
+            FileData fileData = storageService.listFiles(userId)
+                .stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElse(null);
+            
+            if (fileData == null) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Файл не найден"));
+            }
+            
+            Path filePath = safeResolveUserFile(userId, fileId);
+            if (!Files.exists(filePath)) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Файл не найден на диске"));
+            }
+            
+            boolean success = telegramBotService.sendFileFromPath(
+                userTelegramId,
+                filePath.toString(),
+                fileData.getFilename(),
+                fileData.getSizeBytes()
+            );
+            
+            if (success) {
+                return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Файл отправлен в Telegram"));
+            } else {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Ошибка отправки: " + telegramBotService.getConnectionError()));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .body(java.util.Map.of("error", "Ошибка: " + e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/share-telegram-link")
+    public ResponseEntity<?> shareLinkToTelegram(@RequestParam String fileId, @RequestParam String token, @RequestParam String shareUrl) {
+        try {
+            String userId = requireUserId(token);
+            String userTelegramId = jwtService.validateAccessToken(token);
+            
+            if (!telegramBotService.isConfigured()) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Telegram бот не настроен"));
+            }
+            
+            if (userTelegramId == null || userTelegramId.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Telegram ID пользователя не найден"));
+            }
+            
+            FileData fileData = storageService.listFiles(userId)
+                .stream()
+                .filter(f -> f.getId().equals(fileId))
+                .findFirst()
+                .orElse(null);
+            
+            if (fileData == null) {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Файл не найден"));
+            }
+            
+            String fullUrl = shareUrl.startsWith("http") ? shareUrl : baseUrl + shareUrl;
+            
+            String message = "<b>Файл в хранилище EjectCloud:</b>\n" +
+                            "Имя: <code>" + FormatUtil.escapeHtml(fileData.getFilename()) + "</code>\n" +
+                            "Размер: " + FormatUtil.formatFileSize(fileData.getSizeBytes()) + "\n\n" +
+                            "Ссылка (актуальна 24 часа):\n" +
+                            "<code>" + fullUrl + "</code>";
+            
+            boolean success = telegramBotService.sendMessage(userTelegramId, message);
+            
+            if (success) {
+                return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Ссылка отправлена в Telegram"));
+            } else {
+                return ResponseEntity.badRequest()
+                    .header("Content-Type", "application/json; charset=UTF-8")
+                    .body(java.util.Map.of("error", "Ошибка отправки: " + telegramBotService.getConnectionError()));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .body(java.util.Map.of("error", "Ошибка: " + e.getMessage()));
+        }
+    }
+    
 }

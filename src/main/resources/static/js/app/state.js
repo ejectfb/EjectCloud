@@ -197,6 +197,7 @@
             // file
             addActionButton('Скачать', 'primary', () => downloadFile(id));
             addActionButton('Поделиться', 'secondary', () => shareFile(id));
+            addActionButton('Отправить в Telegram', 'success', () => shareFileToTelegram(id));
 
             const fileObj = allFiles.find(f => f.id === id);
             if (fileObj && fileObj.shared && fileObj.shareExpiresAt) {

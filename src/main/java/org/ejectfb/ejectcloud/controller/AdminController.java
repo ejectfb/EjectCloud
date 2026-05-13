@@ -5,6 +5,7 @@ import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
 import org.ejectfb.ejectcloud.service.JwtService;
 import org.ejectfb.ejectcloud.service.SystemMonitorService;
+import org.ejectfb.ejectcloud.service.TelegramBotService;
 import org.ejectfb.ejectcloud.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +20,16 @@ public class AdminController {
     private final JwtService jwtService;
     private final FileStorageService storageService;
     private final SystemMonitorService monitorService;
+    private final TelegramBotService telegramBotService;
 
     public AdminController(UserService userService, JwtService jwtService, 
-                          FileStorageService storageService, SystemMonitorService monitorService) {
+                          FileStorageService storageService, SystemMonitorService monitorService,
+                          TelegramBotService telegramBotService) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.storageService = storageService;
         this.monitorService = monitorService;
+        this.telegramBotService = telegramBotService;
     }
 
     private boolean isValidAdminToken(String token) {
@@ -175,10 +179,88 @@ public class AdminController {
     
     @GetMapping("/system/history")
     public ResponseEntity<?> getSystemHistory(@RequestParam String token,
-                                             @RequestParam(defaultValue = "1h") String period) {
+                                              @RequestParam(defaultValue = "1h") String period) {
         if (!isValidAdminToken(token)) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
         return ResponseEntity.ok(monitorService.getFilteredStats(period));
+    }
+    
+    @GetMapping("/telegram/status")
+    public ResponseEntity<?> getTelegramStatus(@RequestParam String token) {
+        if (!isValidAdminToken(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        
+        Map<String, Object> status = new HashMap<>();
+        status.put("configured", telegramBotService.isConfigured());
+        status.put("connected", telegramBotService.isConnected());
+        status.put("connectionError", telegramBotService.getConnectionError());
+        return ResponseEntity.ok(status);
+    }
+    
+    @PostMapping("/telegram/test")
+    public ResponseEntity<?> testTelegramConnection(@RequestParam String token,
+                                                    @RequestParam String botToken,
+                                                    @RequestParam String adminChatId) {
+        if (!isValidAdminToken(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        if (botToken == null || botToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bot token is required"));
+        }
+        if (adminChatId == null || adminChatId.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Admin Chat ID is required"));
+        }
+        
+        boolean success = telegramBotService.testConnection(botToken);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        if (success) {
+            result.put("message", "Telegram bot успешно подключен");
+            String testMessage = "<b>EjectCloud:</b>\nБот успешно подключен к админ-панели";
+            telegramBotService.sendMessage(adminChatId, testMessage);
+        } else {
+            result.put("error", telegramBotService.getConnectionError());
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    @PostMapping("/telegram/save")
+    public ResponseEntity<?> saveTelegramConfig(@RequestParam String token,
+                                                @RequestParam String botToken,
+                                                @RequestParam String adminChatId) {
+        if (!isValidAdminToken(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        if (botToken == null || botToken.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bot token is required"));
+        }
+        if (adminChatId == null || adminChatId.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Admin Chat ID is required"));
+        }
+        
+        telegramBotService.setBotToken(botToken);
+        telegramBotService.setAdminChatId(adminChatId);
+        
+        boolean success = telegramBotService.testConnection();
+        
+        if (success) {
+            telegramBotService.saveConfig();
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", success);
+        if (success) {
+            result.put("message", "Настройки сохранены и бот подключен");
+            String testMessage = "<b>EjectCloud:</b>\nНастройки Telegram сохранены";
+            telegramBotService.sendMessage(adminChatId, testMessage);
+        } else {
+            result.put("error", telegramBotService.getConnectionError());
+        }
+        
+        return ResponseEntity.ok(result);
     }
 }

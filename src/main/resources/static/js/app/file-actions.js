@@ -160,6 +160,96 @@
             .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
         });
     };
+    
+    window.shareFileToTelegram = function(fileId) {
+        closeQRModal();
+        const fileObj = allFiles.find(f => f.id === fileId);
+        const fileName = fileId.includes('/') ? fileId.split('/').pop() : fileId;
+        const fileSize = fileObj && fileObj.size ? fileObj.size : 0;
+        const fileSizeMB = fileSize / (1024 * 1024);
+        
+        if (fileSizeMB > 20) {
+            showConfirm(
+                `Файл "${fileName}" весит ${fileSizeMB.toFixed(1)} MB (максимум 20 MB для Telegram).\n\n` +
+                `Вместо файла будет отправлена ссылка на скачивание, которая будет актуальна 24 часа. Продолжить?`,
+                () => {
+                    sendTelegramLink(fileId, fileName, fileSize);
+                }
+            );
+        } else {
+            showConfirm(`Отправить файл "${fileName}" в Telegram?`, () => {
+                sendTelegramFile(fileId, fileName, fileSize);
+            });
+        }
+    };
+    
+    function sendTelegramFile(fileId, fileName, fileSize) {
+        const token = getAuthToken();
+        const btn = document.createElement('div');
+        btn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;padding:15px 25px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);font-size:14px;max-width:350px;';
+        btn.innerHTML = '<div style="font-weight:600;margin-bottom:8px;">Отправка в Telegram...</div><div class="progress-bar" style="width:100%;height:8px;background:#ecf0f1;border-radius:4px;overflow:hidden;"><div class="progress-fill" style="height:100%;width:0%;background:#2980b9;transition:width 0.3s;"></div></div><div class="status-text" style="margin-top:6px;color:#666;font-size:12px;"></div>';
+        document.body.appendChild(btn);
+        const fill = btn.querySelector('.progress-fill');
+        const status = btn.querySelector('.status-text');
+        
+        fetch(`/api/files/share-telegram?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}`, {
+            method: 'POST'
+        })
+        .then(async r => {
+            fill.style.width = '70%';
+            status.textContent = 'Обработка...';
+            if (!r.ok) {
+                const text = await r.text();
+                try {
+                    const errorData = JSON.parse(text);
+                    throw new Error(errorData.error || 'Ошибка сервера');
+                } catch {
+                    throw new Error(text || 'Ошибка сервера');
+                }
+            }
+            return r.json();
+        })
+        .then(data => {
+            fill.style.width = '100%';
+            status.textContent = 'Готово!';
+            showNotification('Файл успешно отправлен в Telegram', 'success');
+            setTimeout(() => btn.remove(), 2000);
+        })
+        .catch(e => {
+            fill.style.width = '100%';
+            fill.style.background = '#e74c3c';
+            status.textContent = 'Ошибка!';
+            showNotification('Ошибка отправки: ' + e.message, 'error');
+            setTimeout(() => btn.remove(), 3000);
+        });
+    }
+    
+    function sendTelegramLink(fileId, fileName, fileSize) {
+        const token = getAuthToken();
+        const shareUrl = window.location.origin + '/share/' + fileId;
+        
+        fetch(`/api/files/share-telegram-link?fileId=${encodeURIComponent(fileId)}&token=${encodeURIComponent(token)}&shareUrl=${encodeURIComponent(shareUrl)}`, {
+            method: 'POST'
+        })
+        .then(async r => {
+            if (!r.ok) {
+                const text = await r.text();
+                try {
+                    const errorData = JSON.parse(text);
+                    throw new Error(errorData.error || 'Ошибка сервера');
+                } catch {
+                    throw new Error(text || 'Ошибка сервера');
+                }
+            }
+            return r.json();
+        })
+        .then(data => {
+            showNotification('Ссылка на файл отправлена в Telegram', 'success');
+        })
+        .catch(e => {
+            showNotification('Ошибка отправки: ' + e.message, 'error');
+        });
+    }
 
     let currentQRUrl = '';
     let currentQRFileId = '';

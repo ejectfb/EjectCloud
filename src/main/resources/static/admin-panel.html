@@ -24,6 +24,7 @@
         <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon-text"><img class="icon" src="icons/dashboard.svg" alt="" aria-hidden="true">Дашборд</span></div>
         <div class="nav-item" onclick="showTab('users')"><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></div>
         <div class="nav-item" onclick="showTab('monitoring')"><span class="icon-text"><img class="icon" src="icons/monitoring.svg" alt="" aria-hidden="true">Мониторинг</span></div>
+        <div class="nav-item" onclick="showTab('telegram')"><span class="icon-text"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Telegram Bot</span></div>
     </div>
 
     <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
@@ -225,6 +226,42 @@
                         <div class="chart-container">
                             <canvas id="storageChart" width="1200" height="280"></canvas>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Telegram Bot -->
+            <div id="tab-telegram" class="hidden">
+                <div class="card">
+                    <h3><span class="icon-text"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Настройка Telegram Bot</span></h3>
+                    <div style="display: grid; gap: 20px;">
+                        <div class="form-field">
+                            <label class="form-label">Bot Token</label>
+                            <input id="telegramBotToken" type="password" placeholder="Введите токен бота от @BotFather" />
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label">Chat ID админа</label>
+                            <input id="telegramAdminChatId" type="text" placeholder="Цифровой ID чата (можно узнать у @userinfobot)" />
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="testTelegramConnection()" class="primary" id="telegramTestBtn"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Тест подключения</button>
+                            <button onclick="saveTelegramConfig()" class="success" id="telegramSaveBtn"><img class="icon" src="icons/confirm.svg" alt="" aria-hidden="true">Сохранить настройки</button>
+                        </div>
+                        <div id="telegramStatus" class="hidden" style="padding: 15px; border-radius: 10px; font-weight: 500;"></div>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 25px;">
+                    <h3><span class="icon-text"><img class="icon" src="icons/info.svg" alt="" aria-hidden="true">Как получить данные</span></h3>
+                    <div style="line-height: 1.8; color: #555;">
+                        <p><b>1. Получение Bot Token:</b></p>
+                        <p>• Откройте Telegram и найдите бота <code>@BotFather</code></p>
+                        <p>• Отправьте команду <code>/newbot</code></p>
+                        <p>• Следуйте инструкциям и скопируйте полученный токен</p>
+                        <p style="margin-top: 15px;"><b>2. Получение Chat ID:</b></p>
+                        <p>• Найдйте бота <code>@userinfobot</code> в Telegram</p>
+                        <p>• Отправьте любое сообщение</p>
+                        <p>• Скопируйте ваш <code>ID</code> (число) и вставьте в поле выше</p>
                     </div>
                 </div>
             </div>

@@ -179,8 +179,8 @@ function convertOldToken(oldToken) {
         .then(data => {
             accessToken = data.accessToken;
             refreshToken = data.refreshToken;
-            localStorage.setItem('admin_access_token', accessToken);
-            localStorage.setItem('admin_refresh_token', refreshToken);
+            localStorage.setItem('eject_access_token', accessToken);
+            localStorage.setItem('eject_refresh_token', refreshToken);
             
             currentUser = data.telegramId;
             document.getElementById('who').textContent = currentUser;
@@ -269,27 +269,20 @@ function logout() {
 }
 
 function showTab(tabName) {
-    // Скрыть все вкладки
     document.querySelectorAll('[id^="tab-"]').forEach(tab => {
         tab.classList.add('hidden');
     });
-    
-    // Убрать активный класс с навигации
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
-    
-    // Показать выбранную вкладку
     document.getElementById('tab-' + tabName).classList.remove('hidden');
-    
-    // Активировать навигацию
-    event.target.classList.add('active');
-    
-    // Обновить заголовок
+    const navItem = document.querySelector(`.nav-item[onclick*="'${tabName}'"]`);
+    if (navItem) navItem.classList.add('active');
     const titles = {
         'dashboard': 'Дашборд',
         'users': 'Пользователи', 
-        'monitoring': 'Мониторинг'
+        'monitoring': 'Мониторинг',
+        'telegram': 'Telegram Bot'
     };
     document.getElementById('pageTitle').textContent = titles[tabName];
 
@@ -304,6 +297,8 @@ function showTab(tabName) {
         loadHistory('1h', 'cpu');
         loadHistory('1h', 'memory');
         loadHistory('1h', 'storage');
+    } else if (tabName === 'telegram') {
+        loadTelegramSettings();
     }
 }
 
@@ -455,7 +450,7 @@ function loadUsers() {
                 `;
             });
         })
-        .catch(e => alert('Ошибка загрузки пользователей: ' + e.message));
+        .catch(e => showNotification('Ошибка загрузки пользователей: ' + e.message, 'error'));
 }
 
 function createUser() {
@@ -465,7 +460,7 @@ function createUser() {
     const quotaMB = document.getElementById('newQuota').value;
     
     if (!email || !displayName || !telegramId || !quotaMB) {
-        alert('Заполните все поля');
+        showNotification('Заполните все поля', 'error');
         return;
     }
     
@@ -490,14 +485,14 @@ function createUser() {
         return r.json();
     })
     .then(() => {
-        alert('Пользователь создан');
+        showNotification('Пользователь создан', 'success');
         loadUsers();
         document.getElementById('newEmail').value = '';
         document.getElementById('newDisplayName').value = '';
         document.getElementById('newTelegramId').value = '';
         document.getElementById('newQuota').value = '1024';
     })
-    .catch(e => alert('Ошибка: ' + e.message));
+    .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
 }
 
 function updateQuota(telegramId) {
@@ -520,11 +515,11 @@ function updateQuota(telegramId) {
     })
     .then(r => {
         if (!r.ok) throw new Error('Ошибка сервера');
-        alert('Квота обновлена');
+        showNotification('Квота обновлена', 'success');
         loadUsers();
-        loadDashboard(); // Обновляем дашборд
+        loadDashboard();
     })
-    .catch(e => alert('Ошибка: ' + e.message));
+    .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
 }
 
 function loadHistory(period = '1h', type = 'cpu') {
@@ -703,7 +698,7 @@ function saveUserEdit() {
     const newQuotaMB = document.getElementById('editQuota').value;
     
     if (!newEmail || !newDisplayName || !newTelegramId || !newQuotaMB) {
-        alert('Заполните все поля');
+        showNotification('Заполните все поля', 'error');
         return;
     }
     
@@ -726,12 +721,12 @@ function saveUserEdit() {
     })
     .then(r => {
         if (!r.ok) throw new Error('Ошибка сервера');
-        alert('Пользователь обновлен');
+        showNotification('Пользователь обновлен', 'success');
         closeEditUserModal();
         loadUsers();
         loadDashboard();
     })
-    .catch(e => alert('Ошибка: ' + e.message));
+    .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
 }
 
 function openUserInterface() {
@@ -758,9 +753,9 @@ function resetPassword(userId) {
     })
     .then(r => {
         if (!r.ok) throw new Error('Ошибка сервера');
-        alert('Пароль сброшен');
+        showNotification('Пароль сброшен', 'success');
     })
-    .catch(e => alert('Ошибка: ' + e.message));
+    .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
 }
 
 function deleteUser(userId, displayName) {
@@ -783,9 +778,174 @@ function deleteUser(userId, displayName) {
     })
     .then(r => {
         if (!r.ok) throw new Error('Ошибка сервера');
-        alert('Пользователь удален');
+        showNotification('Пользователь удален', 'success');
         loadUsers();
         loadDashboard();
     })
-    .catch(e => alert('Ошибка: ' + e.message));
+    .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
+}
+
+function showNotification(message, type) {
+    const existing = document.querySelector('.admin-notification');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.className = 'admin-notification';
+    const bg = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1';
+    const fg = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460';
+    const bd = type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb';
+    el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:15px 25px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);font-size:14px;max-width:400px;background:${bg};color:${fg};border:1px solid ${bd};`;
+    el.textContent = message;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+}
+
+function showTelegramStatus(message, type) {
+    const statusDiv = document.getElementById('telegramStatus');
+    statusDiv.classList.remove('hidden');
+    if (type === 'success') {
+        statusDiv.style.backgroundColor = '#d4edda';
+        statusDiv.style.color = '#155724';
+        statusDiv.style.border = '1px solid #c3e6cb';
+    } else if (type === 'error') {
+        statusDiv.style.backgroundColor = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.style.border = '1px solid #f5c6cb';
+    } else {
+        statusDiv.style.backgroundColor = '#d1ecf1';
+        statusDiv.style.color = '#0c5460';
+        statusDiv.style.border = '1px solid #bee5eb';
+    }
+    statusDiv.textContent = message;
+    setTimeout(() => {
+        statusDiv.classList.add('hidden');
+    }, 5000);
+}
+
+function loadTelegramSettings() {
+    if (!accessToken) {
+        logout();
+        return;
+    }
+    
+    fetch('/admin/api/telegram/status?token=' + accessToken)
+        .then(r => {
+            if (r.status === 401) {
+                logout();
+                return;
+            }
+            return r.json();
+        })
+        .then(data => {
+            if (data) {
+                document.getElementById('telegramStatus').classList.add('hidden');
+                if (data.configured) {
+                    document.getElementById('telegramBotToken').value = '•••••••••••••••••••••••••••••••';
+                    document.getElementById('telegramAdminChatId').value = data.connected ? document.getElementById('telegramAdminChatId').value : '';
+                }
+                if (data.connected) {
+                    showTelegramStatus('Бот подключен и работает', 'success');
+                } else if (data.configured) {
+                    showTelegramStatus('Ошибка подключения: ' + (data.connectionError || 'Неизвестная ошибка'), 'error');
+                }
+            }
+        })
+        .catch(e => console.error('Ошибка загрузки настроек Telegram:', e));
+}
+
+function testTelegramConnection() {
+    if (!accessToken) {
+        logout();
+        return;
+    }
+    
+    const botToken = document.getElementById('telegramBotToken').value;
+    const adminChatId = document.getElementById('telegramAdminChatId').value;
+    
+    if (!botToken || botToken === '•••••••••••••••••••••••••••••••') {
+        showTelegramStatus('Введите новый токен бота для тестирования', 'error');
+        return;
+    }
+    
+    if (!adminChatId) {
+        showTelegramStatus('Введите Chat ID админа', 'error');
+        return;
+    }
+    
+    const testBtn = document.getElementById('telegramTestBtn');
+    testBtn.disabled = true;
+    testBtn.textContent = 'Подключение...';
+    
+    const params = new URLSearchParams();
+    params.append('token', accessToken);
+    params.append('botToken', botToken);
+    params.append('adminChatId', adminChatId);
+    
+    fetch('/admin/api/telegram/test', {
+        method: 'POST',
+        body: params
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showTelegramStatus(data.message || 'Подключение успешно!', 'success');
+        } else {
+            showTelegramStatus('Ошибка: ' + (data.error || 'Не удалось подключиться'), 'error');
+        }
+    })
+    .catch(e => {
+        showTelegramStatus('Ошибка: ' + e.message, 'error');
+    })
+    .finally(() => {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Тест подключения';
+    });
+}
+
+function saveTelegramConfig() {
+    if (!accessToken) {
+        logout();
+        return;
+    }
+    
+    const botToken = document.getElementById('telegramBotToken').value;
+    const adminChatId = document.getElementById('telegramAdminChatId').value;
+    
+    if (!botToken || botToken === '•••••••••••••••••••••••••••••••') {
+        showTelegramStatus('Введите токен бота', 'error');
+        return;
+    }
+    
+    if (!adminChatId) {
+        showTelegramStatus('Введите Chat ID админа', 'error');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('telegramSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Сохранение...';
+    
+    const params = new URLSearchParams();
+    params.append('token', accessToken);
+    params.append('botToken', botToken);
+    params.append('adminChatId', adminChatId);
+    
+    fetch('/admin/api/telegram/save', {
+        method: 'POST',
+        body: params
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showTelegramStatus(data.message || 'Настройки сохранены и бот подключен!', 'success');
+        } else {
+            showTelegramStatus('Ошибка: ' + (data.error || 'Не удалось сохранить настройки'), 'error');
+        }
+    })
+    .catch(e => {
+        showTelegramStatus('Ошибка: ' + e.message, 'error');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<img class="icon" src="icons/confirm.svg" alt="" aria-hidden="true">Сохранить настройки';
+    });
 }
