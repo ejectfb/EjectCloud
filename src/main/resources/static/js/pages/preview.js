@@ -241,10 +241,15 @@
             v.controls = true;
             v.playsInline = true;
             v.preload = 'metadata';
-            fetchWithRefresh('/api/files/view?' + viewParams)
-                .then(r => { if (r.ok) return r.blob(); throw new Error(); })
-                .then(blob => { v.src = URL.createObjectURL(blob); })
-                .catch(() => {});
+            fetchWithRefresh('/api/files/stream-token?fileId=' + encodeURIComponent(fileId), { method: 'POST' })
+                .then(r => { if (r.ok) return r.json(); throw new Error('stream-token HTTP ' + r.status); })
+                .then(data => {
+                    v.src = '/api/files/stream?fileId=' + encodeURIComponent(fileId) + '&token=' + encodeURIComponent(data.token);
+                    v.load();
+                })
+                .catch((e) => {
+                    $preview.innerHTML = '<div class="hint">Не удалось открыть видео: ' + esc(e.message || 'ошибка') + '</div>';
+                });
             $preview.appendChild(v);
             return;
         }

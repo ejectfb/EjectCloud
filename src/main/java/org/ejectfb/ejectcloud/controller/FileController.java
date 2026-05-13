@@ -45,6 +45,9 @@ public class FileController {
     private final ArchiveService archiveService;
     private final TelegramBotService telegramBotService;
     private final UserService userService;
+    private final java.util.concurrent.ConcurrentHashMap<String, StreamToken> streamTokens = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private record StreamToken(String userId, String fileId, java.time.Instant expiresAt) {}
     
     @Value("${ejectcloud.upload.timeout:10800000}")
     private long uploadTimeout;
@@ -369,6 +372,103 @@ public class FileController {
                 .header("Content-Type", "text/plain; charset=UTF-8")
                 .body("Error: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/stream-token")
+    public ResponseEntity<?> createStreamToken(@RequestParam String fileId) {
+        try {
+            String userId = requireUserId();
+            Path filePath = safeResolveUserFile(userId, fileId);
+            if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+            cleanupStreamTokens();
+            String token = java.util.UUID.randomUUID().toString();
+            streamTokens.put(token, new StreamToken(userId, fileId, java.time.Instant.now().plusSeconds(2 * 60 * 60)));
+            return ResponseEntity.ok(java.util.Map.of("token", token, "expiresSeconds", 2 * 60 * 60));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "application/json; charset=UTF-8")
+                .body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/stream")
+    public ResponseEntity<?> streamInline(@RequestParam String fileId,
+                                          @RequestParam String token,
+                                          @RequestHeader HttpHeaders headers) {
+        try {
+            cleanupStreamTokens();
+            StreamToken streamToken = streamTokens.get(token);
+            if (streamToken == null || java.time.Instant.now().isAfter(streamToken.expiresAt()) || !streamToken.fileId().equals(fileId)) {
+                streamTokens.remove(token);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Path filePath = safeResolveUserFile(streamToken.userId(), fileId);
+            if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return inlineFileResponse(filePath, headers);
+        } catch (Exception e) {
+            log.warn("[stream] inline error fileId='{}' msg={}", fileId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Content-Type", "text/plain; charset=UTF-8")
+                .body("Error: " + e.getMessage());
+        }
+    }
+
+    private void cleanupStreamTokens() {
+        java.time.Instant now = java.time.Instant.now();
+        streamTokens.entrySet().removeIf(entry -> now.isAfter(entry.getValue().expiresAt()));
+    }
+
+    private ResponseEntity<?> inlineFileResponse(Path filePath, HttpHeaders headers) throws IOException {
+        Resource resource = new FileSystemResource(filePath);
+        long len = Files.size(filePath);
+        MediaType mt = MediaTypeFactory.getMediaType(resource).orElse(MediaType.APPLICATION_OCTET_STREAM);
+
+        String mtStr = mt.toString();
+        if (mtStr.startsWith("text/html") || mtStr.contains("svg") || mtStr.contains("xml")) {
+            mt = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        String filename = filePath.getFileName().toString();
+        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+
+        List<HttpRange> ranges = headers.getRange();
+        if (ranges != null && !ranges.isEmpty()) {
+            HttpRange range = ranges.get(0);
+            long start = range.getRangeStart(len);
+            long end = range.getRangeEnd(len);
+            long rangeLen = Math.min(1 + end - start, len);
+            InputStream inputStream = Files.newInputStream(filePath);
+            long skipped = inputStream.skip(start);
+            while (skipped < start) {
+                long delta = inputStream.skip(start - skipped);
+                if (delta <= 0) break;
+                skipped += delta;
+            }
+            InputStreamResource body = new InputStreamResource(new org.apache.commons.io.input.BoundedInputStream(inputStream, rangeLen));
+
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFilename)
+                .header(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + len)
+                .header("Accept-Ranges", "bytes")
+                .header("X-Content-Type-Options", "nosniff")
+                .contentType(mt)
+                .contentLength(rangeLen)
+                .body(body);
+        }
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFilename)
+            .header("Accept-Ranges", "bytes")
+            .header("X-Content-Type-Options", "nosniff")
+            .contentType(mt)
+            .contentLength(len)
+            .body(resource);
     }
 
     @GetMapping("/text")
