@@ -23,7 +23,6 @@
         </div>
         <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon-text"><img class="icon" src="icons/dashboard.svg" alt="" aria-hidden="true">Дашборд</span></div>
         <div class="nav-item" onclick="showTab('users')"><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></div>
-        <div class="nav-item" onclick="showTab('monitoring')"><span class="icon-text"><img class="icon" src="icons/monitoring.svg" alt="" aria-hidden="true">Мониторинг</span></div>
         <div class="nav-item" onclick="showTab('telegram')"><span class="icon-text"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Telegram Bot</span></div>
     </div>
 
@@ -48,36 +47,9 @@
             <div id="tab-dashboard">
                 <div class="dashboard-grid">
                     <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/disk.svg" alt="" aria-hidden="true">Дисковое пространство</span></h3>
+                        <h3><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></h3>
                         <div class="metric">
-                            <span>Всего:</span>
-                            <span class="metric-value" id="totalDisk">-</span>
-                        </div>
-                        <div class="metric">
-                            <span>Свободно:</span>
-                            <span class="metric-value" id="freeDisk">-</span>
-                        </div>
-                        <div class="metric">
-                            <span>Использовано:</span>
-                            <span class="metric-value" id="usedDisk">-</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="diskProgress"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/cpu.svg" alt="" aria-hidden="true">Система</span></h3>
-                        <div class="metric">
-                            <span>CPU:</span>
-                            <span class="metric-value" id="cpuUsage">-</span>
-                        </div>
-                        <div class="metric">
-                            <span>Память:</span>
-                            <span class="metric-value" id="memoryUsage">-</span>
-                        </div>
-                        <div class="metric">
-                            <span>Пользователей:</span>
+                            <span>Всего пользователей:</span>
                             <span class="metric-value" id="userCount">-</span>
                         </div>
                     </div>
@@ -164,74 +136,6 @@
                     </table>
                     </div>
                     <div id="usersList" class="admin-list"></div>
-                </div>
-            </div>
-            
-            <!-- Мониторинг -->
-            <div id="tab-monitoring" class="hidden">
-                <div class="monitoring-grid">
-                    <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/cpu.svg" alt="" aria-hidden="true">CPU Usage</span></h3>
-                        <div style="margin-bottom: 15px;">
-                            <select id="cpuPeriod" onchange="loadHistory(this.value, 'cpu')">
-                                <option value="5m">5 минут</option>
-                                <option value="30m">30 минут</option>
-                                <option value="1h" selected>1 час</option>
-                                <option value="3h">3 часа</option>
-                                <option value="6h">6 часов</option>
-                                <option value="12h">12 часов</option>
-                                <option value="24h">24 часа</option>
-                                <option value="3d">3 суток</option>
-                                <option value="10d">10 дней</option>
-                                <option value="30d">30 дней</option>
-                            </select>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="cpuChart" width="600" height="280"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/memory.svg" alt="" aria-hidden="true">Memory Usage</span></h3>
-                        <div style="margin-bottom: 15px;">
-                            <select id="memoryPeriod" onchange="loadHistory(this.value, 'memory')">
-                                <option value="5m">5 минут</option>
-                                <option value="30m">30 минут</option>
-                                <option value="1h" selected>1 час</option>
-                                <option value="3h">3 часа</option>
-                                <option value="6h">6 часов</option>
-                                <option value="12h">12 часов</option>
-                                <option value="24h">24 часа</option>
-                                <option value="3d">3 суток</option>
-                                <option value="10d">10 дней</option>
-                                <option value="30d">30 дней</option>
-                            </select>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="memoryChart" width="600" height="280"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="card storage-full">
-                        <h3><span class="icon-text"><img class="icon" src="icons/storage.svg" alt="" aria-hidden="true">Storage Usage</span></h3>
-                        <div style="margin-bottom: 15px;">
-                            <select id="storagePeriod" onchange="loadHistory(this.value, 'storage')">
-                                <option value="5m">5 минут</option>
-                                <option value="30m">30 минут</option>
-                                <option value="1h" selected>1 час</option>
-                                <option value="3h">3 часа</option>
-                                <option value="6h">6 часов</option>
-                                <option value="12h">12 часов</option>
-                                <option value="24h">24 часа</option>
-                                <option value="3d">3 суток</option>
-                                <option value="10d">10 дней</option>
-                                <option value="30d">30 дней</option>
-                            </select>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="storageChart" width="1200" height="280"></canvas>
-                        </div>
-                    </div>
                 </div>
             </div>
             

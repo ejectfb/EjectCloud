@@ -1,11 +1,9 @@
 package org.ejectfb.ejectcloud.controller;
 
 import org.ejectfb.ejectcloud.model.AuthenticatedUser;
-import org.ejectfb.ejectcloud.model.SystemStats;
 import org.ejectfb.ejectcloud.model.UserData;
 import org.ejectfb.ejectcloud.service.FileStorageService;
 import org.ejectfb.ejectcloud.service.JwtService;
-import org.ejectfb.ejectcloud.service.SystemMonitorService;
 import org.ejectfb.ejectcloud.service.TelegramBotService;
 import org.ejectfb.ejectcloud.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -22,16 +20,14 @@ public class AdminController {
     private final UserService userService;
     private final JwtService jwtService;
     private final FileStorageService storageService;
-    private final SystemMonitorService monitorService;
     private final TelegramBotService telegramBotService;
 
     public AdminController(UserService userService, JwtService jwtService,
-                          FileStorageService storageService, SystemMonitorService monitorService,
+                          FileStorageService storageService,
                           TelegramBotService telegramBotService) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.storageService = storageService;
-        this.monitorService = monitorService;
         this.telegramBotService = telegramBotService;
     }
 
@@ -126,8 +122,6 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
         Map<String, Object> dashboard = new HashMap<>();
-        SystemStats.StatsEntry current = monitorService.getCurrentStats();
-        dashboard.put("system", current);
         List<UserData> users = userService.getAllUsers();
         long totalUsed = users.stream().mapToLong(u -> storageService.calculateUsedBytes(u.getId())).sum();
         long totalQuota = users.stream().mapToLong(UserData::getQuotaBytes).sum();
@@ -148,11 +142,6 @@ public class AdminController {
             "list", usersList
         ));
         return ResponseEntity.ok(dashboard);
-    }
-
-    @GetMapping("/system/history")
-    public ResponseEntity<?> getSystemHistory(@RequestParam(defaultValue = "1h") String period) {
-        return ResponseEntity.ok(monitorService.getFilteredStats(period));
     }
 
     @GetMapping("/telegram/status")

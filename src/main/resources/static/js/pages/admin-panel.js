@@ -48,7 +48,6 @@ const $usersList = document.getElementById('usersList');
 
 let lastTopUsersData = null;
 let lastUsersData = null;
-let lastHistoryData = { cpu: null, memory: null, storage: null };
 
 function escapeHtml(str) {
     return String(str)
@@ -175,10 +174,6 @@ window.addEventListener('resize', () => {
     resizeTimer = setTimeout(() => {
         if (lastTopUsersData) renderTopUsersMobile(lastTopUsersData);
         if (lastUsersData) renderUsersMobile(lastUsersData);
-
-        if (lastHistoryData.cpu) drawChart(lastHistoryData.cpu, 'cpu');
-        if (lastHistoryData.memory) drawChart(lastHistoryData.memory, 'memory');
-        if (lastHistoryData.storage) drawChart(lastHistoryData.storage, 'storage');
     }, 150);
 });
 
@@ -308,7 +303,6 @@ function showTab(tabName) {
     const titles = {
         'dashboard': 'Дашборд',
         'users': 'Пользователи', 
-        'monitoring': 'Мониторинг',
         'telegram': 'Telegram Bot'
     };
     document.getElementById('pageTitle').textContent = titles[tabName];
@@ -320,10 +314,6 @@ function showTab(tabName) {
     // Загрузить данные для вкладки
     if (tabName === 'users') {
         loadUsers();
-    } else if (tabName === 'monitoring') {
-        loadHistory('1h', 'cpu');
-        loadHistory('1h', 'memory');
-        loadHistory('1h', 'storage');
     } else if (tabName === 'telegram') {
         loadTelegramSettings();
     }
@@ -345,40 +335,11 @@ function loadDashboard() {
         })
         .then(data => {
             if (data) {
-                updateSystemMetrics(data.system);
                 updateUserMetrics(data.users);
                 updateTopUsers(data.users.list);
             }
         })
         .catch(e => console.error('Ошибка загрузки дашборда:', e));
-}
-
-function updateSystemMetrics(system) {
-    const totalGB = (system.totalDiskSpace / 1024 / 1024 / 1024).toFixed(1);
-    const freeGB = (system.freeDiskSpace / 1024 / 1024 / 1024).toFixed(1);
-    const usedGB = (totalGB - freeGB).toFixed(1);
-    const diskPercent = ((usedGB / totalGB) * 100).toFixed(1);
-    
-    document.getElementById('totalDisk').textContent = totalGB + ' GB';
-    document.getElementById('freeDisk').textContent = freeGB + ' GB';
-    document.getElementById('usedDisk').textContent = usedGB + ' GB (' + diskPercent + '%)';
-    const diskProgressBar = document.getElementById('diskProgress');
-    diskProgressBar.style.width = diskPercent + '%';
-    
-    // Цвет в зависимости от заполненности
-    if (diskPercent < 70) {
-        diskProgressBar.style.backgroundColor = '#28a745';
-    } else if (diskPercent < 90) {
-        diskProgressBar.style.backgroundColor = '#ffc107';
-    } else {
-        diskProgressBar.style.backgroundColor = '#dc3545';
-    }
-    
-    document.getElementById('cpuUsage').textContent = system.cpuUsage.toFixed(1) + '%';
-    
-    const memoryPercent = ((system.memoryUsed / system.memoryTotal) * 100).toFixed(1);
-    const memoryMB = (system.memoryUsed / 1024 / 1024).toFixed(0);
-    document.getElementById('memoryUsage').textContent = memoryMB + ' MB (' + memoryPercent + '%)';
 }
 
 function updateUserMetrics(users) {
@@ -549,157 +510,6 @@ function updateQuota(telegramId) {
         loadDashboard();
     })
     .catch(e => showNotification('Ошибка: ' + e.message, 'error'));
-}
-
-function loadHistory(period = '1h', type = 'cpu') {
-    if (!accessToken) {
-        logout();
-        return;
-    }
-    
-    authFetch('/admin/api/system/history?period=' + period)
-        .then(r => {
-            if (r.status === 401) {
-                logout();
-                return;
-            }
-            return r.json();
-        })
-        .then(data => {
-            if (data) {
-                lastHistoryData[type] = data.entries;
-                drawChart(data.entries, type);
-            }
-        })
-        .catch(e => console.error('Ошибка загрузки истории:', e));
-}
-
-function drawChart(entries, type) {
-    const canvasId = type + 'Chart';
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-
-    const cssHeight = 260;
-    const cssWidth = Math.max(320, (canvas.parentElement && canvas.parentElement.clientWidth) ? canvas.parentElement.clientWidth : 600);
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.style.width = cssWidth + 'px';
-    canvas.style.height = cssHeight + 'px';
-    canvas.width = Math.floor(cssWidth * dpr);
-    canvas.height = Math.floor(cssHeight * dpr);
-
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
-    
-    if (!entries || entries.length === 0) {
-        ctx.fillStyle = '#666';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Нет данных', cssWidth / 2, cssHeight / 2);
-        return;
-    }
-
-    const padding = Math.min(50, Math.max(36, Math.floor(cssWidth * 0.12)));
-    const bottomPadding = 30;
-    const chartWidth = cssWidth - 2 * padding;
-    const chartHeight = cssHeight - padding - bottomPadding;
-    
-    // Оси
-    ctx.strokeStyle = '#ddd';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padding, padding);
-    ctx.lineTo(padding, padding + chartHeight);
-    ctx.lineTo(padding + chartWidth, padding + chartHeight);
-    ctx.stroke();
-    
-    // Получаем максимальные значения
-    let maxValue = 100;
-    let unit = '%';
-    let values = [];
-    
-    entries.forEach(entry => {
-        if (type === 'cpu') {
-            values.push(entry.cpuUsage);
-        } else if (type === 'memory') {
-            values.push(entry.memoryUsed / 1024 / 1024 / 1024); // в GB
-        } else if (type === 'storage') {
-            values.push(((entry.totalDiskSpace - entry.freeDiskSpace) / entry.totalDiskSpace) * 100);
-        }
-    });
-    
-    if (type === 'memory') {
-        maxValue = Math.ceil(Math.max(...values));
-        unit = 'GB';
-    } else {
-        maxValue = Math.max(100, Math.ceil(Math.max(...values)));
-    }
-    
-    // Шкала Y
-    ctx.fillStyle = '#666';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'right';
-    for (let i = 0; i <= 5; i++) {
-        const y = padding + (chartHeight / 5) * i;
-        const value = maxValue - (i * maxValue / 5);
-        ctx.fillText(value.toFixed(type === 'memory' ? 1 : 0) + unit, padding - 5, y + 3);
-        
-        ctx.strokeStyle = '#f0f0f0';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(padding + chartWidth, y);
-        ctx.stroke();
-    }
-    
-    // Шкала X (время)
-    const period = document.getElementById(type + 'Period').value;
-    const timeLabels = getTimeLabels(entries, period);
-    ctx.fillStyle = '#666';
-    ctx.font = '9px Arial';
-    ctx.textAlign = 'center';
-    
-    const labelCount = Math.min(6, timeLabels.length);
-    for (let i = 0; i < labelCount; i++) {
-        const denom = (labelCount - 1) || 1;
-        const x = padding + (i / denom) * chartWidth;
-        const labelIndex = Math.floor((i / denom) * (timeLabels.length - 1));
-        ctx.fillText(timeLabels[labelIndex], x, padding + chartHeight + 15);
-    }
-    
-    // График
-    if (entries.length > 1) {
-        ctx.strokeStyle = type === 'cpu' ? '#e74c3c' : type === 'memory' ? '#3498db' : '#27ae60';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        
-        values.forEach((value, index) => {
-            const x = padding + (index / (values.length - 1)) * chartWidth;
-            const y = padding + chartHeight - (value / maxValue) * chartHeight;
-            
-            if (index === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        
-        ctx.stroke();
-    }
-}
-
-function getTimeLabels(entries, period) {
-    return entries.map(entry => {
-        const date = new Date(entry.timestamp);
-        if (['5m', '30m', '1h'].includes(period)) {
-            return date.toLocaleTimeString('ru', {hour: '2-digit', minute: '2-digit'});
-        } else if (['3h', '6h', '12h', '24h'].includes(period)) {
-            return date.toLocaleTimeString('ru', {hour: '2-digit', minute: '2-digit'});
-        } else {
-            return date.toLocaleDateString('ru', {day: '2-digit', month: '2-digit'});
-        }
-    });
 }
 
 let editingUserId = null;
