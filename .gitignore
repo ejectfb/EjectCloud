@@ -51,6 +51,7 @@ keystore.p12
 # Application data
 Data/
 stats.xml
+config.properties
 
 # Logs
 *.log
