@@ -1,0 +1,125 @@
+/* EjectCloud design tokens — single source of truth */
+
+:root {
+    /* Brand */
+    --ec-accent: #e08a0e;
+    --ec-accent-strong: #c97205;
+    --ec-accent-bright: #f5a524;
+    --ec-accent-soft: rgba(224, 138, 14, 0.12);
+    --ec-accent-softer: rgba(224, 138, 14, 0.07);
+    --ec-on-accent: #ffffff;
+
+    /* Surfaces */
+    --bg-app: #f4f5f7;
+    --bg-canvas: #eef0f3;
+    --surface: #ffffff;
+    --surface-2: #f8f9fa;
+    --surface-3: #f1f3f5;
+    --surface-hover: rgba(20, 24, 32, 0.04);
+
+    /* Lines */
+    --border: #e4e7eb;
+    --border-strong: #d4d8de;
+    --hairline: rgba(17, 24, 39, 0.07);
+
+    /* Text */
+    --text-1: #191d24;
+    --text-2: #565e6b;
+    --text-3: #8a919c;
+    --text-on-accent: var(--ec-on-accent);
+
+    /* Semantic */
+    --success: #1e9e5a;
+    --success-soft: rgba(30, 158, 90, 0.11);
+    --danger: #dc2f2f;
+    --danger-soft: rgba(220, 47, 47, 0.10);
+    --warning: #d97706;
+    --warning-soft: rgba(217, 119, 6, 0.12);
+    --info: #2563eb;
+    --info-soft: rgba(37, 99, 235, 0.10);
+
+    /* File type badge colors */
+    --ft-folder: #e08a0e;
+    --ft-image: #8b5cf6;
+    --ft-video: #ec4899;
+    --ft-audio: #0ea5e9;
+    --ft-doc: #2563eb;
+    --ft-sheet: #16a34a;
+    --ft-slide: #ea580c;
+    --ft-pdf: #dc2f2f;
+    --ft-archive: #a16207;
+    --ft-code: #475569;
+    --ft-file: #64748b;
+
+    /* Elevation */
+    --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
+    --shadow-float: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 12px 28px -6px rgba(16, 24, 40, 0.14);
+    --shadow-overlay: 0 24px 60px -12px rgba(9, 12, 18, 0.35);
+    --shadow-accent: 0 4px 14px -2px rgba(201, 114, 5, 0.35);
+
+    /* Radii */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 22px;
+    --r-pill: 999px;
+
+    /* Type */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --dur-1: 120ms;
+    --dur-2: 200ms;
+    --dur-3: 340ms;
+
+    /* Layout */
+    --sidebar-w: 272px;
+    --toolbar-h: 56px;
+
+    color-scheme: light;
+}
+
+[data-theme="dark"] {
+    --ec-accent: #f5a524;
+    --ec-accent-strong: #e08a0e;
+    --ec-accent-bright: #ffc35c;
+    --ec-accent-soft: rgba(245, 165, 36, 0.16);
+    --ec-accent-softer: rgba(245, 165, 36, 0.09);
+
+    --bg-app: #0e1013;
+    --bg-canvas: #14171b;
+    --surface: #181c21;
+    --surface-2: #1e2329;
+    --surface-3: #242a31;
+    --surface-hover: rgba(255, 255, 255, 0.05);
+
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --hairline: rgba(255, 255, 255, 0.06);
+
+    --text-1: #edeff2;
+    --text-2: #a3abb6;
+    --text-3: #6d7681;
+
+    --success: #34c97b;
+    --success-soft: rgba(52, 201, 123, 0.14);
+    --danger: #f05252;
+    --danger-soft: rgba(240, 82, 82, 0.14);
+    --warning: #f5a524;
+    --warning-soft: rgba(245, 165, 36, 0.15);
+    --info: #5b9cf6;
+    --info-soft: rgba(91, 156, 246, 0.14);
+
+    --ft-code: #94a3b8;
+    --ft-file: #94a3b8;
+
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-float: 0 4px 10px -2px rgba(0, 0, 0, 0.4), 0 14px 32px -6px rgba(0, 0, 0, 0.5);
+    --shadow-overlay: 0 24px 60px -12px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 4px 16px -2px rgba(245, 165, 36, 0.28);
+
+    color-scheme: dark;
+}

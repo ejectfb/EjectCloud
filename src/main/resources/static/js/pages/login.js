@@ -11,36 +11,50 @@ async function login(event) {
     const errorDiv = document.getElementById('loginError');
     
     loginBtn.disabled = true;
-    loginBtn.textContent = 'Вход...';
+    loginBtn.classList.add('is-loading');
+    const label = loginBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Вход…';
     errorDiv.textContent = '';
-    
+
     try {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             accessToken = data.accessToken;
             refreshToken = data.refreshToken;
-            
+
             localStorage.setItem('eject_access_token', accessToken);
             localStorage.setItem('eject_refresh_token', refreshToken);
-            
+
             // Проверяем статус пользователя
             await checkUserStatus();
         } else {
             errorDiv.textContent = data.error || 'Ошибка входа';
+            shakeForm(loginBtn.closest('.login-form'));
         }
     } catch (error) {
         errorDiv.textContent = 'Ошибка соединения';
+        shakeForm(loginBtn.closest('.login-form'));
     } finally {
         loginBtn.disabled = false;
-        loginBtn.textContent = 'Войти';
+        loginBtn.classList.remove('is-loading');
+        if (label) label.textContent = 'Войти';
     }
+}
+
+function shakeForm(el) {
+    if (!el) return;
+    el.classList.remove('shake');
+    // restart animation
+    void el.offsetWidth;
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 500);
 }
 
 async function checkUserStatus() {
@@ -50,10 +64,8 @@ async function checkUserStatus() {
         
         if (data.ok) {
             currentUser = data;
-            
-            if (data.isAdmin && (data.user === 'Administrator' || data.user === 'admin')) {
-                showChangePasswordForm();
-            } else if (data.mustChangePassword) {
+
+            if (data.mustChangePassword) {
                 showChangePasswordForm();
             } else {
                 redirectToApp();
@@ -65,15 +77,15 @@ async function checkUserStatus() {
 }
 
 function showChangePasswordForm() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('changePasswordForm').style.display = 'block';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('changePasswordForm').classList.remove('hidden');
     document.getElementById('currentPassword').value = document.getElementById('password').value;
 }
 
 function showProfileForm() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('changePasswordForm').style.display = 'none';
-    document.getElementById('profileForm').style.display = 'block';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('changePasswordForm').classList.add('hidden');
+    document.getElementById('profileForm').classList.remove('hidden');
     document.getElementById('profileEmail').value = document.getElementById('email').value;
     document.getElementById('displayName').value = currentUser.user;
 }
@@ -109,11 +121,7 @@ async function changePassword(event) {
         const data = await response.json();
         
         if (response.ok) {
-            if (currentUser.isAdmin && (currentUser.user === 'Administrator' || currentUser.user === 'admin')) {
-                showProfileForm();
-            } else {
-                redirectToApp();
-            }
+            redirectToApp();
         } else {
             errorDiv.textContent = data.error || 'Ошибка смены пароля';
         }

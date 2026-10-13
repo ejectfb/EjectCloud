@@ -79,7 +79,130 @@
     }
 
     function iconHtml(name, className = '') {
-        return `<img class="icon ${className}" src="icons/${name}.svg" alt="" aria-hidden="true">`;
+        if (window.EcUtil && EcUtil.icon) return EcUtil.icon(name, className);
+        return `<span class="icon icon-fallback" data-icon="${name}"></span>`;
+    }
+
+    /* ---- View / sort / search state ---- */
+
+    let viewMode = 'list'; // list | grid
+    let sortBy = 'date';   // name | size | date
+    let sortDir = 'desc';  // asc | desc
+    let searchQuery = '';
+
+    function loadViewPrefs() {
+        try {
+            const p = JSON.parse(localStorage.getItem('ec_view') || '{}');
+            if (p.viewMode === 'grid' || p.viewMode === 'list') viewMode = p.viewMode;
+            if (p.sortBy === 'name' || p.sortBy === 'size' || p.sortBy === 'date') sortBy = p.sortBy;
+            if (p.sortDir === 'asc' || p.sortDir === 'desc') sortDir = p.sortDir;
+        } catch (e) { /* ignore */ }
+    }
+
+    function saveViewPrefs() {
+        try {
+            localStorage.setItem('ec_view', JSON.stringify({ viewMode, sortBy, sortDir }));
+        } catch (e) { /* ignore */ }
+    }
+
+    loadViewPrefs();
+
+    function applyViewMode() {
+        const mobile = isMobileLayout();
+        if (document.body) document.body.classList.toggle('view-grid', !mobile && viewMode === 'grid');
+        const useTable = !mobile && viewMode === 'list';
+        if ($filesContainer) $filesContainer.style.display = useTable ? 'block' : 'none';
+        if ($filesList) $filesList.classList.toggle('hidden', useTable);
+        const lb = document.getElementById('viewListBtn');
+        const gb = document.getElementById('viewGridBtn');
+        if (lb) lb.classList.toggle('active', viewMode === 'list');
+        if (gb) gb.classList.toggle('active', viewMode === 'grid');
+    }
+
+    window.setViewMode = function (mode) {
+        if (viewMode === mode) return;
+        viewMode = mode;
+        saveViewPrefs();
+        applyViewMode();
+        if (isInTrash) showTrash(); else showFilesInPath(currentPath);
+    };
+
+    window.sortFiles = function (key) {
+        if (sortBy === key) {
+            sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortBy = key;
+            sortDir = key === 'name' ? 'asc' : 'desc';
+        }
+        saveViewPrefs();
+        updateSortHeaders();
+        if (isInTrash) showTrash(); else showFilesInPath(currentPath);
+    };
+
+    function updateSortHeaders() {
+        document.querySelectorAll('#filesTable thead th.sortable').forEach(th => {
+            const k = th.dataset.sort;
+            th.classList.toggle('sort-active', k === sortBy);
+            th.classList.toggle('sort-desc', k === sortBy && sortDir === 'desc');
+        });
+    }
+
+    function matchesSearch(name) {
+        if (!searchQuery) return true;
+        return String(name || '').toLowerCase().includes(searchQuery);
+    }
+
+    const $searchInput = document.getElementById('searchInput');
+    if ($searchInput) {
+        $searchInput.addEventListener('input', () => {
+            searchQuery = $searchInput.value.trim().toLowerCase();
+            if (isInTrash) showTrash(); else showFilesInPath(currentPath);
+        });
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K' || e.key === 'л')) {
+                e.preventDefault();
+                $searchInput.focus();
+                $searchInput.select();
+            } else if (e.key === 'Escape' && document.activeElement === $searchInput) {
+                $searchInput.value = '';
+                searchQuery = '';
+                if (isInTrash) showTrash(); else showFilesInPath(currentPath);
+            }
+        });
+    }
+
+    /* ---- Avatars ---- */
+
+    const AVATAR_COLORS = ['#e08a0e', '#2563eb', '#16a34a', '#8b5cf6', '#ec4899', '#0ea5e9', '#dc2f2f', '#0d9488'];
+
+    function initialsOf(name) {
+        const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '?';
+        if (parts.length > 1) return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    function paintAvatar(el, name) {
+        if (!el) return;
+        el.textContent = initialsOf(name);
+        const seed = String(name || '').charCodeAt(0) || 0;
+        el.style.background = AVATAR_COLORS[seed % AVATAR_COLORS.length];
+    }
+
+    /* ---- Notifications (delegated to shared toast stack) ---- */
+
+    function showNotification(message, type = 'info') {
+        if (window.EcUtil && EcUtil.ecToast) {
+            EcUtil.ecToast(String(message), type, type === 'error' ? 6500 : 4200);
+            return;
+        }
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        notification.style.display = 'flex';
+        notification.style.alignItems = 'center';
+        document.body.appendChild(notification);
+        setTimeout(() => { if (notification.parentElement) notification.remove(); }, 30000);
     }
 
     function parseItemKey(key) {

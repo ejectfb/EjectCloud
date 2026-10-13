@@ -1,104 +1,131 @@
 <!doctype html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <title>EjectCloud</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0e1013">
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
-    <link rel="stylesheet" href="css/icons.css">
+    <script>(function(){try{var t=localStorage.getItem('ec_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/dropzone.css">
     <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
-<div id="login">
-    <h2>EjectCloud</h2>
+<div id="login" class="boot-screen">
+    <div class="boot-logo"></div>
     <p>Перенаправление на страницу входа...</p>
 </div>
 
 <div id="app" class="hidden">
-    <div class="sidebar">
+    <aside class="sidebar">
         <div class="sidebar-header">
-            <span class="icon-text"><img class="icon" src="icons/logo-cloud.svg" alt="" aria-hidden="true">EjectCloud</span>
+            <span class="icon-text brand"><svg class="icon brand-icon" aria-hidden="true"><use href="icons/sprite.svg#i-logo-cloud"></use></svg>EjectCloud</span>
         </div>
-        <div id="fileTree"></div>
-    </div>
+        <nav id="fileTree" class="file-tree" aria-label="Папки"></nav>
+        <div class="sidebar-footer">
+            <div class="storage-block" id="quotaDisplay">
+                <div class="storage-top">
+                    <span class="storage-label"><svg class="icon"><use href="icons/sprite.svg#i-disk"></use></svg>Хранилище</span>
+                    <span id="quotaText" class="quota-text num"></span>
+                </div>
+                <div class="quota-bar">
+                    <div id="quotaProgress" class="progress-fill"></div>
+                </div>
+            </div>
+            <div class="side-tasks">
+                <button class="side-tasks-btn" onclick="TaskCenter && TaskCenter.openDrawer()" title="Задачи">
+                    <svg class="icon"><use href="icons/sprite.svg#i-tasks"></use></svg>
+                    <span>Задачи</span>
+                </button>
+                <span id="taskBubbleHost" class="side-tasks-bubble"></span>
+            </div>
+            <button class="user-card" onclick="toggleUserMenu()" title="Меню пользователя">
+                <span class="avatar" id="sideAvatar">?</span>
+                <span class="user-card-meta">
+                    <span class="user-card-name" id="sideUserName">…</span>
+                    <span class="user-card-sub" id="sideUserSub"></span>
+                </span>
+            </button>
+        </div>
+    </aside>
 
     <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
-    
-    <div class="main-content">
-        <div class="toolbar">
+
+    <main class="main-content">
+        <header class="toolbar">
             <div class="toolbar-left">
-                <button id="menuBtn" onclick="toggleDrawer()" class="secondary menu-button" title="Меню" aria-label="Меню">
-                    &#9776;
+                <button id="menuBtn" onclick="toggleDrawer()" class="icon-btn menu-button" title="Меню" aria-label="Меню">
+                    <svg class="icon"><use href="icons/sprite.svg#i-menu"></use></svg>
                 </button>
-                <button id="uploadBtn" onclick="uploadFiles()" class="primary">
-                    <img class="icon btn-icon" src="icons/upload.svg" alt="" aria-hidden="true">
-                    <span class="btn-text"> Загрузить</span>
+                <button id="uploadBtn" onclick="uploadFiles()" class="btn btn-primary">
+                    <svg class="icon"><use href="icons/sprite.svg#i-upload"></use></svg>
+                    <span class="btn-text">Загрузить</span>
                 </button>
-                <button id="createFolderBtn" onclick="createFolder()" class="primary">
-                    <img class="icon btn-icon" src="icons/folder-open.svg" alt="" aria-hidden="true">
-                    <span class="btn-text"> Создать папку</span>
+                <button id="createFolderBtn" onclick="createFolder()" class="btn btn-secondary">
+                    <svg class="icon"><use href="icons/sprite.svg#i-folder-open"></use></svg>
+                    <span class="btn-text">Папка</span>
                 </button>
-
-                <span id="taskBubbleHostMobile"></span>
             </div>
-            
+
             <div class="toolbar-right">
-                <div class="quota-display">
-                    <span id="taskBubbleHostDesktop"></span>
-                    <div class="quota-bar">
-                        <div id="quotaProgress" class="quota-fill"></div>
-                    </div>
-                    <span id="quotaText" class="quota-text"></span>
+                <label class="search-box toolbar-search" id="searchBox">
+                    <svg class="icon"><use href="icons/sprite.svg#i-search"></use></svg>
+                    <input type="search" id="searchInput" placeholder="Поиск в папке" autocomplete="off" spellcheck="false">
+                </label>
+
+                <div class="view-toggle" role="group" aria-label="Вид списка">
+                    <button id="viewListBtn" class="icon-btn view-btn active" onclick="setViewMode('list')" title="Список" aria-label="Вид: список">
+                        <svg class="icon"><use href="icons/sprite.svg#i-rows"></use></svg>
+                    </button>
+                    <button id="viewGridBtn" class="icon-btn view-btn" onclick="setViewMode('grid')" title="Сетка" aria-label="Вид: сетка">
+                        <svg class="icon"><use href="icons/sprite.svg#i-layout-grid"></use></svg>
+                    </button>
                 </div>
-                
-                <div class="user-info">
-                    <span id="who"></span>
-                    <span id="timer"></span>
-                </div>
-                
-                <button id="userMenuBtn" onclick="toggleUserMenu()" class="secondary user-menu-button" title="Меню пользователя" aria-label="Меню пользователя">
-                    &#9776;
+
+                <button id="userMenuBtn" onclick="toggleUserMenu()" class="user-chip" title="Меню пользователя">
+                    <span class="avatar" id="whoAvatar">?</span>
+                    <span class="user-chip-name" id="who"></span>
+                    <span id="timer" class="user-chip-timer num"></span>
                 </button>
             </div>
-        </div>
-        
-            <div class="file-area" id="fileArea">
-                <div class="dropzone-overlay" id="dropzoneOverlay">
-                    <div class="dropzone-content">
-                        <div class="dropzone-icon"><img class="icon icon-xl" src="icons/upload.svg" alt="" aria-hidden="true"></div>
-                        <div class="dropzone-title">Перетащите файлы сюда</div>
-                        <div class="dropzone-hint">Файлы будут загружены в текущую папку</div>
-                    </div>
-                </div>
+        </header>
 
-                <!-- Панель групповых операций (over breadcrumbs) -->
-            <div id="bulkActions" class="bulk-actions" style="display: none;">
-                <div class="bulk-info">
-                    <span id="selectedCount">0</span> выбрано
-                </div>
-                <div class="bulk-buttons">
-                    <button onclick="bulkDownload()" class="success"><img class="icon" src="icons/download.svg" alt="" aria-hidden="true">Скачать</button>
-                    <button onclick="bulkMove()" class="primary"><img class="icon" src="icons/move.svg" alt="" aria-hidden="true">Переместить</button>
-                    <button onclick="bulkDelete()" class="danger"><img class="icon" src="icons/trash.svg" alt="" aria-hidden="true">Удалить</button>
-                    <button onclick="bulkPermanentDelete()" class="danger"><img class="icon" src="icons/delete-forever.svg" alt="" aria-hidden="true">Безвозвратно</button>
-                    <button onclick="clearSelection()" class="secondary"><img class="icon" src="icons/cancel.svg" alt="" aria-hidden="true">Отменить</button>
+        <div class="file-area" id="fileArea">
+            <div class="dropzone-overlay" id="dropzoneOverlay">
+                <div class="dropzone-content">
+                    <div class="dropzone-icon"><svg class="icon icon-xl"><use href="icons/sprite.svg#i-upload"></use></svg></div>
+                    <div class="dropzone-title">Перетащите файлы сюда</div>
+                    <div class="dropzone-hint" id="dropzoneHint">Файлы будут загружены в текущую папку</div>
                 </div>
             </div>
 
-            <div id="currentPath" class="current-path"></div>
-            
+            <!-- Панель групповых операций -->
+            <div id="bulkActions" class="bulk-actions hidden">
+                <div class="bulk-info"><span id="selectedCount">0</span> выбрано</div>
+                <div class="bulk-buttons">
+                    <button onclick="bulkDownload()" class="btn btn-secondary btn-sm"><svg class="icon"><use href="icons/sprite.svg#i-download"></use></svg>Скачать</button>
+                    <button onclick="bulkMove()" class="btn btn-secondary btn-sm"><svg class="icon"><use href="icons/sprite.svg#i-move"></use></svg>Переместить</button>
+                    <button onclick="bulkDelete()" class="btn btn-danger btn-sm"><svg class="icon"><use href="icons/sprite.svg#i-trash"></use></svg>Удалить</button>
+                    <button onclick="bulkPermanentDelete()" class="btn btn-danger btn-sm"><svg class="icon"><use href="icons/sprite.svg#i-delete-forever"></use></svg>Безвозвратно</button>
+                    <button onclick="clearSelection()" class="btn btn-ghost btn-sm"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg>Отменить</button>
+                </div>
+            </div>
+
+            <div id="currentPath" class="current-path" aria-label="Путь"></div>
+
             <div class="files-container">
                 <table id="filesTable">
                     <thead>
                         <tr>
-                            <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th>Имя</th>
-                            <th>Размер</th>
-                            <th>Дата</th>
+                            <th class="col-check"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Выбрать все"></th>
+                            <th class="col-name sortable" data-sort="name" onclick="sortFiles('name')">Имя<span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="size" onclick="sortFiles('size')">Размер<span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="date" onclick="sortFiles('date')">Дата<span class="sort-arrow"></span></th>
                             <th>Ссылка</th>
-                            <th>Действия</th>
+                            <th class="col-actions"></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -107,7 +134,7 @@
 
             <div id="filesList" class="files-list hidden"></div>
         </div>
-    </div>
+    </main>
 </div>
 
 <input type="file" id="fileInput" multiple style="display: none;">
@@ -115,19 +142,21 @@
 <div id="userMenuBackdrop" class="user-menu-backdrop" onclick="closeUserMenu()"></div>
 <aside id="userMenuDrawer" class="user-menu-drawer" aria-label="Меню пользователя">
     <div class="user-menu-header">
-        <div>
+        <span class="avatar avatar-lg" id="userMenuAvatar">?</span>
+        <div class="user-menu-id">
             <div class="user-menu-title">Аккаунт</div>
             <div id="userMenuName" class="user-menu-name"></div>
         </div>
-        <button class="secondary" onclick="closeUserMenu()" title="Закрыть">&times;</button>
     </div>
     <div class="user-menu-list">
-        <button id="adminPanelBtn" onclick="openAdminPanel()" class="success user-menu-item" style="display: none;">
-            <img class="icon btn-icon" src="icons/admin.svg" alt="" aria-hidden="true">Админ
+        <button id="adminPanelBtn" onclick="openAdminPanel()" class="btn btn-secondary user-menu-item" style="display: none;">
+            <svg class="icon"><use href="icons/sprite.svg#i-admin"></use></svg>Админ-панель
         </button>
-        <button onclick="openSettingsModal()" class="secondary user-menu-item">Настройки</button>
-        <button onclick="logout()" class="danger user-menu-item">
-            <img class="icon btn-icon" src="icons/logout.svg" alt="" aria-hidden="true">Выход
+        <button onclick="openSettingsModal()" class="btn btn-secondary user-menu-item">
+            <svg class="icon"><use href="icons/sprite.svg#i-settings"></use></svg>Настройки
+        </button>
+        <button onclick="logout()" class="btn btn-danger user-menu-item">
+            <svg class="icon"><use href="icons/sprite.svg#i-logout"></use></svg>Выход
         </button>
     </div>
 </aside>
@@ -136,15 +165,15 @@
 <div id="moveModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title"><span class="icon-text"><img class="icon" src="icons/move.svg" alt="" aria-hidden="true">Переместить файл</span></div>
-            <span class="close" onclick="closeMoveModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-move"></use></svg></span>Переместить</div>
+            <button class="icon-btn modal-close" onclick="closeMoveModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
-            <p id="moveFileName" style="margin-bottom: 15px; font-weight: 600;"></p>
+            <p id="moveFileName" class="modal-file-name"></p>
             <div class="folder-tree" id="folderTree"></div>
             <div class="modal-buttons">
-                <button onclick="closeMoveModal()" class="secondary">Отмена</button>
-                <button onclick="confirmMove()" class="primary">Переместить</button>
+                <button onclick="closeMoveModal()" class="btn btn-ghost">Отмена</button>
+                <button onclick="confirmMove()" class="btn btn-primary">Переместить</button>
             </div>
         </div>
     </div>
@@ -154,15 +183,15 @@
 <div id="confirmModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title"><span class="icon-text"><img class="icon" src="icons/warning.svg" alt="" aria-hidden="true">Подтверждение</span></div>
-            <span class="close" onclick="closeConfirmModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon title-icon-danger"><svg class="icon"><use href="icons/sprite.svg#i-warning"></use></svg></span>Подтверждение</div>
+            <button class="icon-btn modal-close" onclick="closeConfirmModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
-            <p id="confirmMessage" style="margin-bottom: 20px; font-size: 16px;"></p>
+            <p id="confirmMessage" class="confirm-message"></p>
             <div class="modal-buttons">
-                <button onclick="closeConfirmModal()" class="secondary">Отмена</button>
-                <button id="confirmButton" onclick="confirmAction()" class="danger">Подтвердить</button>
-                <button id="confirmPermanentButton" onclick="confirmPermanentAction()" class="danger hidden">Удалить безвозвратно</button>
+                <button onclick="closeConfirmModal()" class="btn btn-ghost">Отмена</button>
+                <button id="confirmButton" onclick="confirmAction()" class="btn btn-danger">Подтвердить</button>
+                <button id="confirmPermanentButton" onclick="confirmPermanentAction()" class="btn btn-danger hidden">Удалить безвозвратно</button>
             </div>
         </div>
     </div>
@@ -172,15 +201,15 @@
 <div id="inputModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title" id="inputTitle"><span class="icon-text"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">Ввод</span></div>
-            <span class="close" onclick="closeInputModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-edit"></use></svg></span><span id="inputTitle">Ввод</span></div>
+            <button class="icon-btn modal-close" onclick="closeInputModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
-            <p id="inputMessage" style="margin-bottom: 15px; font-weight: 500;"></p>
+            <p id="inputMessage" class="input-message"></p>
             <input type="text" id="inputField" />
             <div class="modal-buttons">
-                <button onclick="closeInputModal()" class="secondary">Отмена</button>
-                <button onclick="confirmInput()" class="primary">ОК</button>
+                <button onclick="closeInputModal()" class="btn btn-ghost">Отмена</button>
+                <button onclick="confirmInput()" class="btn btn-primary">ОК</button>
             </div>
         </div>
     </div>
@@ -191,7 +220,7 @@
     <div class="modal-content actions-sheet">
         <div class="modal-header">
             <div class="modal-title" id="actionsTitle">Действия</div>
-            <span class="close" onclick="closeActionsModal()">&times;</span>
+            <button class="icon-btn modal-close" onclick="closeActionsModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
             <div id="actionsBody" class="actions-list"></div>
@@ -202,16 +231,26 @@
 <div id="settingsModal" class="modal">
     <div class="modal-content settings-modal-content">
         <div class="modal-header">
-            <div class="modal-title">Настройки</div>
-            <span class="close" onclick="closeSettingsModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-settings"></use></svg></span>Настройки</div>
+            <button class="icon-btn modal-close" onclick="closeSettingsModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body settings-body">
+            <section class="settings-section">
+                <h3>Внешний вид</h3>
+                <div class="theme-segment" role="group" aria-label="Тема оформления">
+                    <button type="button" data-theme-choice="system" onclick="chooseTheme('system')">Системная</button>
+                    <button type="button" data-theme-choice="light" onclick="chooseTheme('light')">Светлая</button>
+                    <button type="button" data-theme-choice="dark" onclick="chooseTheme('dark')">Тёмная</button>
+                </div>
+            </section>
             <section class="settings-section">
                 <h3>Изменить пароль</h3>
                 <input type="password" id="settingsCurrentPassword" placeholder="Старый пароль" autocomplete="current-password">
                 <input type="password" id="settingsNewPassword" placeholder="Новый пароль" autocomplete="new-password">
                 <input type="password" id="settingsNewPasswordRepeat" placeholder="Повторите новый пароль" autocomplete="new-password">
-                <button class="primary" onclick="changeSettingsPassword()">Сохранить пароль</button>
+                <div class="settings-actions-row">
+                    <button class="btn btn-primary" onclick="changeSettingsPassword()">Сохранить пароль</button>
+                </div>
             </section>
             <section class="settings-section">
                 <h3>Telegram</h3>
@@ -219,8 +258,8 @@
                 <div id="telegramBindHelp" class="telegram-bind-help"></div>
                 <input type="text" id="telegramCodeInput" placeholder="Код из Telegram" inputmode="numeric" maxlength="6">
                 <div class="settings-actions-row">
-                    <button id="bindTelegramBtn" class="success" onclick="bindTelegramByCode()">Привязать Telegram</button>
-                    <button id="unlinkTelegramBtn" class="danger" onclick="unlinkTelegram()" style="display: none;">Отвязать Telegram</button>
+                    <button id="bindTelegramBtn" class="btn btn-success" onclick="bindTelegramByCode()">Привязать Telegram</button>
+                    <button id="unlinkTelegramBtn" class="btn btn-danger" onclick="unlinkTelegram()" style="display: none;">Отвязать Telegram</button>
                 </div>
             </section>
         </div>
@@ -229,19 +268,19 @@
 
 <!-- Модальное окно QR-кода -->
 <div id="qrModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content qr-modal-content">
         <div class="modal-header">
-            <div class="modal-title">QR-код для скачивания</div>
-            <span class="close" onclick="closeQRModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-qr-code"></use></svg></span>QR-код для скачивания</div>
+            <button class="icon-btn modal-close" onclick="closeQRModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
             <div id="qrCodeContainer"></div>
             <div id="qrShareUrl"></div>
-            <div class="modal-buttons">
-                <button onclick="closeQRModal()" class="secondary">Закрыть</button>
-                <button id="qrDeleteShareBtn" onclick="deleteQRShareLink()" class="danger">Удалить ссылку</button>
-                <button onclick="shareFileToTelegram(currentQRFileId)" class="success" id="qrTelegramBtn"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Отправить в Telegram</button>
-                <button onclick="copyQRUrl()" class="primary">Копировать ссылку</button>
+            <div class="modal-buttons modal-buttons-col">
+                <button onclick="copyQRUrl()" class="btn btn-primary"><svg class="icon"><use href="icons/sprite.svg#i-copy"></use></svg>Копировать ссылку</button>
+                <button onclick="shareFileToTelegram(currentQRFileId)" class="btn btn-success" id="qrTelegramBtn"><svg class="icon"><use href="icons/sprite.svg#i-telegram"></use></svg>Отправить в Telegram</button>
+                <button id="qrDeleteShareBtn" onclick="deleteQRShareLink()" class="btn btn-danger"><svg class="icon"><use href="icons/sprite.svg#i-trash"></use></svg>Удалить ссылку</button>
+                <button onclick="closeQRModal()" class="btn btn-ghost">Закрыть</button>
             </div>
         </div>
     </div>
@@ -251,21 +290,23 @@
 <div id="taskBackdrop" class="task-backdrop hidden"></div>
 <button id="taskBubble" class="task-bubble" title="Задачи">
     <span id="taskBubbleFill" class="task-bubble-fill" aria-hidden="true"></span>
-    <span id="taskBubblePct" class="pct"></span>
+    <span id="taskBubblePct" class="pct num"></span>
 </button>
 <aside id="taskDrawer" class="task-drawer" aria-label="Задачи">
     <div class="task-drawer-header">
-        <div class="task-drawer-title">Задачи</div>
+        <div class="task-drawer-title"><svg class="icon"><use href="icons/sprite.svg#i-tasks"></use></svg>Задачи</div>
         <div class="task-controls">
-            <button id="taskClearCompleted" class="secondary" title="Очистить завершенные">Очистить</button>
-            <button class="secondary" onclick="TaskCenter && TaskCenter.closeDrawer && TaskCenter.closeDrawer()" title="Закрыть">×</button>
+            <button id="taskClearCompleted" class="btn btn-ghost btn-sm" title="Очистить завершенные">Очистить</button>
+            <button class="icon-btn" onclick="TaskCenter && TaskCenter.closeDrawer && TaskCenter.closeDrawer()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
     </div>
     <div id="taskList" class="task-drawer-body"></div>
 </aside>
 
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/task-center.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+<script src="js/vendor/qrcode.min.js"></script>
 <script src="js/app/state.js"></script>
 <script src="js/app/browser.js"></script>
 <script src="js/app/uploads.js"></script>

@@ -206,11 +206,11 @@
     function sendTelegramFile(fileId, fileName, fileSize) {
         const token = getAuthToken();
         const btn = document.createElement('div');
-        btn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;padding:15px 25px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);font-size:14px;max-width:350px;';
-        btn.innerHTML = '<div style="font-weight:600;margin-bottom:8px;">Отправка в Telegram...</div><div class="progress-bar" style="width:100%;height:8px;background:#ecf0f1;border-radius:4px;overflow:hidden;"><div class="progress-fill" style="height:100%;width:0%;background:#2980b9;transition:width 0.3s;"></div></div><div class="status-text" style="margin-top:6px;color:#666;font-size:12px;"></div>';
+        btn.className = 'tg-progress';
+        btn.innerHTML = '<div class="tg-title">Отправка в Telegram...</div><div class="progress-track"><div class="progress-fill tg-fill"></div></div><div class="tg-status"></div>';
         document.body.appendChild(btn);
-        const fill = btn.querySelector('.progress-fill');
-        const status = btn.querySelector('.status-text');
+        const fill = btn.querySelector('.tg-fill');
+        const status = btn.querySelector('.tg-status');
         
         authFetch(`/api/files/share-telegram?fileId=${encodeURIComponent(fileId)}`, {
             method: 'POST'
@@ -237,7 +237,7 @@
         })
         .catch(e => {
             fill.style.width = '100%';
-            fill.style.background = '#e74c3c';
+            fill.classList.add('is-danger');
             status.textContent = 'Ошибка!';
             showNotification('Ошибка отправки: ' + e.message, 'error');
             setTimeout(() => btn.remove(), 3000);
@@ -778,17 +778,12 @@
         const usedGB = (quota.used / 1024 / 1024 / 1024).toFixed(1);
         const totalGB = (quota.quota / 1024 / 1024 / 1024).toFixed(1);
         const remainingGB = (quota.remaining / 1024 / 1024 / 1024).toFixed(1);
-        
+
         $quotaProgress.style.width = percentage + '%';
-        $quotaText.textContent = isMobileLayout() ? `${usedGB}/${totalGB} GB` : `${usedGB} из ${totalGB} GB`;
-        $quotaText.title = `Использовано ${usedGB} GB, свободно ${remainingGB} GB, всего ${totalGB} GB`;
-        
+        $quotaText.textContent = `${usedGB} из ${totalGB} ГБ`;
+        $quotaText.title = `Использовано ${usedGB} ГБ, свободно ${remainingGB} ГБ, всего ${totalGB} ГБ`;
+
         // Цвет прогрессбара в зависимости от заполненности
-        if (percentage < 70) {
-            $quotaProgress.style.backgroundColor = '#28a745';
-        } else if (percentage < 90) {
-            $quotaProgress.style.backgroundColor = '#ffc107';
-        } else {
-            $quotaProgress.style.backgroundColor = '#dc3545';
-        }
+        $quotaProgress.classList.toggle('is-warn', percentage >= 70 && percentage < 90);
+        $quotaProgress.classList.toggle('is-danger', percentage >= 90);
     }

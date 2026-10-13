@@ -1,101 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>EjectCloud - Вход</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>EjectCloud — Вход</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0e1013">
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
-    <link rel="stylesheet" href="css/icons.css">
+    <script>(function(){try{var t=localStorage.getItem('ec_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
 
-<div class="login-wrapper">
-    <div class="login-container">
-    <!-- Форма входа -->
-    <div id="loginForm">
-        <div class="logo">
-            <h1><span class="icon-text"><img class="icon" src="icons/logo-cloud.svg" alt="" aria-hidden="true">EjectCloud</span></h1>
+<div class="login-shell">
+    <section class="brand-panel">
+        <div class="brand-glow" aria-hidden="true"></div>
+        <div class="brand-inner">
+            <div class="logo-video">
+                <video id="logoVideo" autoplay muted loop playsinline preload="metadata" poster="images/twitch-logo-transparent.png">
+                    <source src="images/animated-logo.webm" type="video/webm">
+                </video>
+                <img class="logo-fallback" src="images/twitch-logo-transparent.png" alt="EjectCloud">
+            </div>
+            <div class="brand-name icon-text">
+                <svg class="icon brand-mark" aria-hidden="true"><use href="icons/sprite.svg#i-logo-cloud"></use></svg>
+                EjectCloud
+            </div>
+            <p class="brand-tag">Хранилище, которое всегда с вами</p>
         </div>
-        
-        <form onsubmit="login(event)">
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" required>
+        <div class="brand-foot">Self-hosted · Полный контроль над данными</div>
+    </section>
+
+    <main class="form-panel">
+        <button id="themeBtn" class="icon-btn panel-theme" data-theme-toggle title="Тема"></button>
+
+        <div class="login-container">
+            <!-- Форма входа -->
+            <div id="loginForm" class="login-form">
+                <div class="form-head">
+                    <h1 class="form-title">Вход в аккаунт</h1>
+                    <p class="form-sub">Введите email и пароль</p>
+                </div>
+
+                <form onsubmit="login(event)">
+                    <div class="field">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required autocomplete="username" placeholder="you@example.com">
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Пароль</label>
+                        <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="loginBtn"><span class="btn-label">Войти</span></button>
+                    <div id="loginError" class="form-error" role="alert"></div>
+                </form>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Пароль:</label>
-                <input type="password" id="password" required>
+
+            <!-- Форма смены пароля -->
+            <div id="changePasswordForm" class="login-form hidden">
+                <div class="form-head">
+                    <h1 class="form-title">Смена пароля</h1>
+                    <p class="form-sub">Необходимо изменить пароль для продолжения работы</p>
+                </div>
+
+                <form onsubmit="changePassword(event)">
+                    <div class="field">
+                        <label for="currentPassword">Текущий пароль</label>
+                        <input type="password" id="currentPassword" required autocomplete="current-password">
+                    </div>
+
+                    <div class="field">
+                        <label for="newPassword">Новый пароль</label>
+                        <input type="password" id="newPassword" required minlength="6" autocomplete="new-password">
+                    </div>
+
+                    <div class="field">
+                        <label for="confirmPassword">Подтвердите пароль</label>
+                        <input type="password" id="confirmPassword" required minlength="6" autocomplete="new-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block"><span class="btn-label">Изменить пароль</span></button>
+                    <div id="changePasswordError" class="form-error" role="alert"></div>
+                </form>
             </div>
-            
-            <button type="submit" class="btn" id="loginBtn">Войти</button>
-            <div id="loginError" class="error"></div>
-        </form>
-    </div>
-    
-    <!-- Форма смены пароля -->
-    <div id="changePasswordForm" class="change-password-form">
-        <div class="form-title">Смена пароля</div>
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">
-            Необходимо изменить пароль для продолжения работы
-        </p>
-        
-        <form onsubmit="changePassword(event)">
-            <div class="form-group">
-                <label for="currentPassword">Текущий пароль:</label>
-                <input type="password" id="currentPassword" required>
+
+            <!-- Форма обновления профиля (для админа) -->
+            <div id="profileForm" class="login-form hidden">
+                <div class="form-head">
+                    <h1 class="form-title">Обновление профиля</h1>
+                    <p class="form-sub">Пожалуйста, обновите данные профиля</p>
+                </div>
+
+                <form onsubmit="updateProfile(event)">
+                    <div class="field">
+                        <label for="profileEmail">Email</label>
+                        <input type="email" id="profileEmail" required autocomplete="username">
+                    </div>
+
+                    <div class="field">
+                        <label for="displayName">Имя</label>
+                        <input type="text" id="displayName" required autocomplete="name">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block"><span class="btn-label">Обновить профиль</span></button>
+                    <div id="profileError" class="form-error" role="alert"></div>
+                </form>
             </div>
-            
-            <div class="form-group">
-                <label for="newPassword">Новый пароль:</label>
-                <input type="password" id="newPassword" required minlength="6">
-            </div>
-            
-            <div class="form-group">
-                <label for="confirmPassword">Подтвердите пароль:</label>
-                <input type="password" id="confirmPassword" required minlength="6">
-            </div>
-            
-            <button type="submit" class="btn">Изменить пароль</button>
-            <div id="changePasswordError" class="error"></div>
-        </form>
-    </div>
-    
-    <!-- Форма обновления профиля (для админа) -->
-    <div id="profileForm" class="profile-form">
-        <div class="form-title">Обновление профиля</div>
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">
-            Пожалуйста, обновите данные профиля
-        </p>
-        
-        <form onsubmit="updateProfile(event)">
-            <div class="form-group">
-                <label for="profileEmail">Email:</label>
-                <input type="email" id="profileEmail" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="displayName">Имя:</label>
-                <input type="text" id="displayName" required>
-            </div>
-            
-            <button type="submit" class="btn">Обновить профиль</button>
-            <div id="profileError" class="error"></div>
-        </form>
-    </div>
-    </div>
-    
-    <div class="logo-video">
-        <video id="logoVideo" autoplay muted loop playsinline preload="metadata" poster="images/twitch-logo-transparent.png">
-            <source src="images/animated-logo.webm" type="video/webm">
-        </video>
-        <img class="logo-fallback" src="images/twitch-logo-transparent.png" alt="EjectCloud">
-    </div>
+        </div>
+    </main>
 </div>
 
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/pages/login-logo.js"></script>
-
 <script src="js/pages/login.js"></script>
 
 </body>

@@ -1,0 +1,16 @@
+{
+  "name": "EjectCloud",
+  "short_name": "EjectCloud",
+  "description": "Self-hosted cloud storage",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1013",
+  "theme_color": "#0e1013",
+  "icons": [
+    {
+      "src": "images/twitch-logo-transparent.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

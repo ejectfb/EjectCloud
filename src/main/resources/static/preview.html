@@ -1,54 +1,65 @@
 <!doctype html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EjectCloud - Предпросмотр</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EjectCloud — Предпросмотр</title>
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
-    <link rel="stylesheet" href="css/icons.css">
+    <meta name="theme-color" content="#0e1013">
+    <script>(function(){try{var t=localStorage.getItem('ec_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/preview.css">
 </head>
 <body>
-    <div id="toast" class="toast"></div>
-    <div class="topbar">
-        <button class="btn secondary" id="backBtn">← Назад</button>
-        <div class="title" id="fileTitle">Предпросмотр</div>
-    </div>
+    <div id="toast" class="toast" role="status"></div>
 
-    <div class="wrap">
-        <div class="card">
-            <div class="meta">
-                <div class="kv"><b>Тип:</b> <span id="fileType">-</span></div>
-                <div class="kv"><b>Размер:</b> <span id="fileSize">-</span></div>
-                <div class="kv"><b>Загружен:</b> <span id="fileUploaded">-</span></div>
+    <header class="pv-topbar">
+        <button class="btn btn-secondary btn-sm" id="backBtn">
+            <svg class="icon"><use href="icons/sprite.svg#i-arrow-left"></use></svg><span>Назад</span>
+        </button>
+        <div class="pv-title" id="fileTitle">Предпросмотр</div>
+        <button id="themeBtn" class="icon-btn" data-theme-toggle title="Тема"></button>
+    </header>
+
+    <main class="pv-wrap">
+        <section class="pv-card">
+            <div class="pv-meta">
+                <div class="kv"><span class="kv-label">Тип</span><b id="fileType">—</b></div>
+                <div class="kv"><span class="kv-label">Размер</span><b id="fileSize" class="num">—</b></div>
+                <div class="kv"><span class="kv-label">Загружен</span><b id="fileUploaded">—</b></div>
             </div>
-            <div class="actions" id="actions"></div>
-            <div class="preview" id="preview">
-                <div class="hint">Loading...</div>
+
+            <div class="pv-actions" id="actions"></div>
+
+            <div class="pv-preview" id="preview">
+                <div class="hint"><span class="skeleton skeleton-hint"></span></div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <div id="qrModal" class="modal" aria-hidden="true">
-        <div class="modal-content">
+        <div class="modal-content qr-modal-content">
             <div class="modal-header">
-                <div class="modal-title">QR-код для скачивания</div>
-                <button id="qrCloseX" class="btn secondary icon-only" title="Закрыть">×</button>
+                <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-qr-code"></use></svg></span>QR-код для скачивания</div>
+                <button id="qrCloseX" class="icon-btn" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
             </div>
             <div class="modal-body">
                 <div id="qrCodeContainer"></div>
                 <div id="qrShareUrl"></div>
-                <div class="modal-buttons">
-                    <button id="qrCloseBtn" class="btn light">Закрыть</button>
-                    <button id="qrDeleteShareBtn" class="btn danger">Удалить ссылку</button>
-                    <button id="qrCopyBtn" class="btn primary">Копировать ссылку</button>
+                <div class="modal-buttons modal-buttons-col">
+                    <button id="qrCopyBtn" class="btn btn-primary"><svg class="icon"><use href="icons/sprite.svg#i-copy"></use></svg>Копировать ссылку</button>
+                    <button id="qrDeleteShareBtn" class="btn btn-danger"><svg class="icon"><use href="icons/sprite.svg#i-trash"></use></svg>Удалить ссылку</button>
+                    <button id="qrCloseBtn" class="btn btn-ghost">Закрыть</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/vendor/qrcode.min.js"></script>
     <script src="js/pages/preview.js"></script>
 </body>
 </html>

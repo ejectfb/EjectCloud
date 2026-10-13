@@ -1,7 +1,28 @@
 let settingsTelegramVerified = false;
 
+function currentThemeChoice() {
+    let t = null;
+    try { t = localStorage.getItem('ec_theme'); } catch (e) {}
+    return t === 'dark' || t === 'light' ? t : 'system';
+}
+
+function syncThemeSegment() {
+    const choice = currentThemeChoice();
+    document.querySelectorAll('[data-theme-choice]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-theme-choice') === choice);
+    });
+}
+
+function chooseTheme(choice) {
+    if (window.EcTheme && EcTheme.set) EcTheme.set(choice);
+    syncThemeSegment();
+}
+
 function toggleUserMenu() {
     document.body.classList.toggle('user-menu-open');
+    if (document.body.classList.contains('user-menu-open')) {
+        closeDrawer();
+    }
 }
 
 function closeUserMenu() {
@@ -65,6 +86,7 @@ async function loadSettings() {
 function openSettingsModal() {
     closeUserMenu();
     document.getElementById('settingsModal').style.display = 'block';
+    syncThemeSegment();
     loadSettings().catch(e => showNotification('Ошибка загрузки настроек: ' + e.message, 'error'));
 }
 
@@ -138,6 +160,7 @@ async function unlinkTelegram() {
 
 window.toggleUserMenu = toggleUserMenu;
 window.closeUserMenu = closeUserMenu;
+window.chooseTheme = chooseTheme;
 window.openSettingsModal = openSettingsModal;
 window.closeSettingsModal = closeSettingsModal;
 window.changeSettingsPassword = changeSettingsPassword;

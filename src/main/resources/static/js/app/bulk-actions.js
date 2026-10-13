@@ -221,8 +221,8 @@
             const item = document.createElement('div');
             item.className = 'folder-item';
             const depth = folder.split('/').length - 1;
-            item.style.paddingLeft = (20 + depth * 15) + 'px';
-            item.innerHTML = `${iconHtml('folder')} ${folder.split('/').pop()}`;
+            item.style.paddingLeft = (10 + depth * 16) + 'px';
+            item.innerHTML = `${iconHtml('folder')} ${escapeHtml(folder.split('/').pop())}`;
             item.onclick = () => selectTargetFolder(folder, item);
             folderTree.appendChild(item);
         });

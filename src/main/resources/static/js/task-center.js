@@ -38,8 +38,7 @@
     function findDom() {
         return {
             bubble: document.getElementById('taskBubble'),
-            bubbleHostDesktop: document.getElementById('taskBubbleHostDesktop'),
-            bubbleHostMobile: document.getElementById('taskBubbleHostMobile'),
+            bubbleHost: document.getElementById('taskBubbleHost'),
             bubblePct: document.getElementById('taskBubblePct'),
             bubbleFill: document.getElementById('taskBubbleFill'),
             drawer: document.getElementById('taskDrawer'),
@@ -51,12 +50,9 @@
 
     function relocateBubble() {
         const dom = findDom();
-        if (!dom.bubble) return;
-        const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-        const host = isMobile ? dom.bubbleHostMobile : dom.bubbleHostDesktop;
-        if (!host) return;
-        if (dom.bubble.parentElement !== host) {
-            host.appendChild(dom.bubble);
+        if (!dom.bubble || !dom.bubbleHost) return;
+        if (dom.bubble.parentElement !== dom.bubbleHost) {
+            dom.bubbleHost.appendChild(dom.bubble);
         }
     }
 
@@ -276,7 +272,10 @@
             render();
         });
         if (dom.bubble) {
-            dom.bubble.addEventListener('click', () => api.toggleDrawer());
+            dom.bubble.addEventListener('click', (e) => {
+                e.stopPropagation();
+                api.toggleDrawer();
+            });
         }
         if (dom.backdrop) {
             dom.backdrop.addEventListener('click', () => api.closeDrawer());

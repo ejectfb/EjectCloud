@@ -32,26 +32,43 @@ public class RateLimitConfig extends OncePerRequestFilter {
         if (uri.equals("/api/auth/login") && "POST".equals(request.getMethod())) {
             Bucket loginBucket = getLoginBucket(clientIp);
             if (!loginBucket.tryConsume(1)) {
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.getWriter().write("Too many login attempts");
+                writeError(response, "Слишком много попыток входа",
+                        "Повторите попытку через минуту.");
                 return;
             }
         }
-        
+
         // Исключаем API из rate limiting для авторизованных пользователей
         if (uri.startsWith("/api/") && request.getParameter("token") != null) {
             filterChain.doFilter(request, response);
             return;
         }
-        
+
         Bucket bucket = getBucket(clientIp);
-        
+
         if (bucket.tryConsume(1)) {
             filterChain.doFilter(request, response);
         } else {
-            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.getWriter().write("Too many requests");
+            writeError(response, "Слишком много запросов",
+                    "Вы выполняете действия слишком быстро. Подождите минуту и обновите страницу.");
         }
+    }
+
+    private void writeError(HttpServletResponse response, String title, String message) throws IOException {
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setContentType("text/html; charset=UTF-8");
+        response.getWriter().write(
+            "<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'>" +
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>Слишком много запросов</title>" +
+            "<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+            "font-family:-apple-system,'Segoe UI',Roboto,Inter,sans-serif;background:#f6f7f8;color:#1c2128;" +
+            "-webkit-font-smoothing:antialiased}.box{text-align:center;padding:40px 32px;max-width:420px}" +
+            ".code{font-size:52px;font-weight:800;letter-spacing:-2px;margin-bottom:12px}" +
+            "h1{font-size:19px;font-weight:700;margin:0 0 8px}p{color:#5c6470;font-size:14.5px;line-height:1.55;margin:0}" +
+            "@media(prefers-color-scheme:dark){body{background:#0e1013;color:#eceef1}.code{color:#f5a524}p{color:#9aa3af}}</style></head>" +
+            "<body><div class='box'><div class='code'>429</div><h1>" + title + "</h1><p>" + message + "</p></div></body></html>"
+        );
     }
     
     private Bucket getBucket(String clientIp) {

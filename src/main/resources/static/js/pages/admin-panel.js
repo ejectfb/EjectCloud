@@ -65,6 +65,28 @@ function jsString(str) {
         .replace(/\r?\n/g, ' ');
 }
 
+function icon(name) {
+    if (window.EcUtil && EcUtil.icon) return EcUtil.icon(name);
+    return '';
+}
+
+function paintWhoAvatar(name) {
+    const el = document.getElementById('whoAvatar');
+    if (!el) return;
+    const colors = ['#e08a0e', '#2563eb', '#16a34a', '#8b5cf6', '#ec4899', '#0ea5e9', '#dc2f2f', '#0d9488'];
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    el.textContent = parts.length > 1
+        ? (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+        : (parts[0] ? parts[0].slice(0, 2).toUpperCase() : '?');
+    el.style.background = colors[(String(name || '').charCodeAt(0) || 0) % colors.length];
+}
+
+function usageBarHtml(percent) {
+    const p = Math.min(100, Math.max(0, Number(percent) || 0));
+    const cls = p > 90 ? 'is-danger' : (p > 70 ? 'is-warn' : '');
+    return `<div class="usage-bar"><div class="usage-fill ${cls}" style="width:${p}%"></div></div>`;
+}
+
 async function readError(response) {
     const text = await response.text();
     try {
@@ -126,35 +148,33 @@ function renderUsersMobile(users) {
         const main = document.createElement('div');
         main.className = 'admin-main';
         main.innerHTML = `
-                <div class="admin-title">${escapeHtml(user.displayName)} <span style="font-weight:500;color:#6b7280;">@${escapeHtml(user.nickname || user.id)}</span></div>
+                <div class="admin-title">${escapeHtml(user.displayName)} <span class="admin-nick">@${escapeHtml(user.nickname || user.id)}</span></div>
                 <div class="admin-meta">
                 <span>${escapeHtml(user.email)}</span>
                 <span>${escapeHtml(user.telegramId || '-')}</span>
-                <span>${usedMB} MB / ${quotaMB} MB (${usagePercent}%)</span>
+                <span class="num">${usedMB} MB / ${quotaMB} MB (${usagePercent}%)</span>
             </div>
-            <div style="margin-top: 8px; background: #f0f0f0; border-radius: 10px; overflow: hidden; height: 10px;">
-                <div style="height: 100%; background: ${usageColor}; width: ${Math.min(100, usagePercent)}%; transition: width 0.3s;"></div>
-            </div>
+            ${usageBarHtml(usagePercent)}
         `;
 
         const actions = document.createElement('div');
         actions.className = 'admin-actions';
 
         const editBtn = document.createElement('button');
-        editBtn.className = 'primary';
-        editBtn.innerHTML = '<img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">';
+        editBtn.className = 'icon-btn icon-btn-sm';
+        editBtn.innerHTML = icon('edit');
         editBtn.title = 'Редактировать';
         editBtn.onclick = () => openEditUserModal(user.id, user.nickname || user.id, user.email, user.displayName, user.telegramId, quotaMB);
 
         const resetBtn = document.createElement('button');
-        resetBtn.className = 'secondary';
-        resetBtn.innerHTML = '<img class="icon" src="icons/key.svg" alt="" aria-hidden="true">';
+        resetBtn.className = 'icon-btn icon-btn-sm';
+        resetBtn.innerHTML = icon('key');
         resetBtn.title = 'Сбросить пароль';
         resetBtn.onclick = () => resetPassword(user.id);
 
         const delBtn = document.createElement('button');
-        delBtn.className = 'danger';
-        delBtn.innerHTML = '<img class="icon" src="icons/trash.svg" alt="" aria-hidden="true">';
+        delBtn.className = 'icon-btn icon-btn-sm danger';
+        delBtn.innerHTML = icon('trash');
         delBtn.title = 'Удалить';
         delBtn.onclick = () => deleteUser(user.id, user.displayName);
 
@@ -206,8 +226,9 @@ function convertOldToken(oldToken) {
             
             currentUser = data.telegramId;
             document.getElementById('who').textContent = currentUser;
+            paintWhoAvatar(currentUser);
             document.getElementById('app').classList.remove('hidden');
-            
+
             startTokenRefresh();
             loadDashboard();
             setInterval(loadDashboard, 30000);
@@ -222,8 +243,9 @@ function validateToken() {
             if (data.ok) {
                 currentUser = data.user;
                 document.getElementById('who').textContent = currentUser;
+                paintWhoAvatar(currentUser);
                 document.getElementById('app').classList.remove('hidden');
-                
+
                 startTokenRefresh();
                 loadDashboard();
                 setInterval(loadDashboard, 30000);
@@ -265,7 +287,8 @@ function startTokenRefresh() {
     }, 10 * 60 * 1000);
     
     // Скрываем таймер
-    document.getElementById('timer').style.display = 'none';
+    const timerEl = document.getElementById('timer');
+    if (timerEl) timerEl.style.display = 'none';
 }
 
 function showError() {
@@ -353,15 +376,10 @@ function updateUserMetrics(users) {
     document.getElementById('totalUsed').textContent = totalUsedGB + ' GB (' + quotaPercent + '%)';
     const quotaProgressBar = document.getElementById('quotaProgress');
     quotaProgressBar.style.width = quotaPercent + '%';
-    
+
     // Цвет в зависимости от заполненности
-    if (quotaPercent < 70) {
-        quotaProgressBar.style.backgroundColor = '#28a745';
-    } else if (quotaPercent < 90) {
-        quotaProgressBar.style.backgroundColor = '#ffc107';
-    } else {
-        quotaProgressBar.style.backgroundColor = '#dc3545';
-    }
+    quotaProgressBar.classList.toggle('is-warn', quotaPercent >= 70 && quotaPercent < 90);
+    quotaProgressBar.classList.toggle('is-danger', quotaPercent >= 90);
 }
 
 function updateTopUsers(usersList) {
@@ -374,17 +392,23 @@ function updateTopUsers(usersList) {
     usersList
         .sort((a, b) => b.usedBytes - a.usedBytes)
         .slice(0, 5)
-        .forEach(user => {
+        .forEach((user, idx) => {
             const row = tbody.insertRow();
             const usedMB = Math.round(user.usedBytes / 1024 / 1024);
             const quotaMB = Math.round(user.quotaBytes / 1024 / 1024);
             const percent = quotaMB > 0 ? ((usedMB / quotaMB) * 100).toFixed(1) : 0;
-            
+
             row.innerHTML = `
-                <td>${user.username}</td>
-                <td>${usedMB} MB</td>
-                <td>${quotaMB} MB</td>
-                <td>${percent}%</td>
+                <td class="num cell-muted">${idx + 1}</td>
+                <td class="cell-strong">${escapeHtml(user.username)}</td>
+                <td class="num">${usedMB} MB</td>
+                <td class="num">${quotaMB} MB</td>
+                <td>
+                    <div class="quota-cell">
+                        ${usageBarHtml(percent)}
+                        <span class="quota-cell-text num">${percent}%</span>
+                    </div>
+                </td>
             `;
         });
 }
@@ -417,23 +441,21 @@ function loadUsers() {
                 const usagePercent = user.usagePercent || 0;
                 
                 row.innerHTML = `
-                    <td>${escapeHtml(user.displayName)}</td>
+                    <td class="cell-strong">${escapeHtml(user.displayName)}</td>
                     <td>${escapeHtml(user.nickname || user.id)}</td>
                     <td>${escapeHtml(user.email)}</td>
-                    <td>${escapeHtml(user.telegramId || '-')}</td>
+                    <td class="num">${escapeHtml(user.telegramId || '-')}</td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 100px; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden;">
-                                <div style="height: 100%; background: ${usagePercent > 90 ? '#dc3545' : usagePercent > 70 ? '#ffc107' : '#28a745'}; width: ${Math.min(100, usagePercent)}%; transition: width 0.3s;"></div>
-                            </div>
-                            <span style="font-size: 12px; white-space: nowrap;">${usedMB} MB / ${quotaMB} MB</span>
+                        <div class="quota-cell">
+                            ${usageBarHtml(usagePercent)}
+                            <span class="quota-cell-text num">${usedMB} / ${quotaMB} MB</span>
                         </div>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button onclick="openEditUserModal('${jsString(user.id)}', '${jsString(user.nickname || user.id)}', '${jsString(user.email)}', '${jsString(user.displayName)}', '${jsString(user.telegramId || '')}', ${quotaMB})" class="primary"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true"></button>
-                            <button onclick="resetPassword('${jsString(user.id)}')" class="secondary"><img class="icon" src="icons/key.svg" alt="" aria-hidden="true"></button>
-                            <button onclick="deleteUser('${jsString(user.id)}', '${jsString(user.displayName)}')" class="danger"><img class="icon" src="icons/trash.svg" alt="" aria-hidden="true"></button>
+                            <button onclick="openEditUserModal('${jsString(user.id)}', '${jsString(user.nickname || user.id)}', '${jsString(user.email)}', '${jsString(user.displayName)}', '${jsString(user.telegramId || '')}', ${quotaMB})" title="Редактировать">${icon('edit')}</button>
+                            <button onclick="resetPassword('${jsString(user.id)}')" title="Сбросить пароль">${icon('key')}</button>
+                            <button onclick="deleteUser('${jsString(user.id)}', '${jsString(user.displayName)}')" class="danger" title="Удалить">${icon('trash')}</button>
                         </div>
                     </td>
                 `;
@@ -575,10 +597,10 @@ function openUserInterface() {
 }
 
 function resetPassword(userId) {
-    if (!confirm('Сбросить пароль? Пароль станет равным emailу.')) {
-        return;
-    }
-    
+    adminConfirm('Сбросить пароль? Пароль станет равным emailу.', () => doResetPassword(userId));
+}
+
+function doResetPassword(userId) {
     if (!accessToken) {
         logout();
         return;
@@ -599,10 +621,10 @@ function resetPassword(userId) {
 }
 
 function deleteUser(userId, displayName) {
-    if (!confirm(`Удалить пользователя ${displayName}? Все файлы будут удалены!`)) {
-        return;
-    }
-    
+    adminConfirm(`Удалить пользователя ${displayName}? Все файлы будут удалены!`, () => doDeleteUser(userId));
+}
+
+function doDeleteUser(userId) {
     if (!accessToken) {
         logout();
         return;
@@ -625,14 +647,12 @@ function deleteUser(userId, displayName) {
 }
 
 function showNotification(message, type) {
-    const existing = document.querySelector('.admin-notification');
-    if (existing) existing.remove();
+    if (window.EcUtil && EcUtil.ecToast) {
+        EcUtil.ecToast(String(message), type || 'info', type === 'error' ? 6500 : 4200);
+        return;
+    }
     const el = document.createElement('div');
     el.className = 'admin-notification';
-    const bg = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1';
-    const fg = type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460';
-    const bd = type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb';
-    el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:15px 25px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);font-size:14px;max-width:400px;background:${bg};color:${fg};border:1px solid ${bd};`;
     el.textContent = message;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 5000);
@@ -640,25 +660,39 @@ function showNotification(message, type) {
 
 function showTelegramStatus(message, type) {
     const statusDiv = document.getElementById('telegramStatus');
-    statusDiv.classList.remove('hidden');
-    if (type === 'success') {
-        statusDiv.style.backgroundColor = '#d4edda';
-        statusDiv.style.color = '#155724';
-        statusDiv.style.border = '1px solid #c3e6cb';
-    } else if (type === 'error') {
-        statusDiv.style.backgroundColor = '#f8d7da';
-        statusDiv.style.color = '#721c24';
-        statusDiv.style.border = '1px solid #f5c6cb';
-    } else {
-        statusDiv.style.backgroundColor = '#d1ecf1';
-        statusDiv.style.color = '#0c5460';
-        statusDiv.style.border = '1px solid #bee5eb';
-    }
+    statusDiv.classList.remove('hidden', 'success', 'error', 'info');
+    statusDiv.classList.add(type === 'success' ? 'success' : (type === 'error' ? 'error' : 'info'));
     statusDiv.textContent = message;
-    setTimeout(() => {
+    clearTimeout(statusDiv._hideTimer);
+    statusDiv._hideTimer = setTimeout(() => {
         statusDiv.classList.add('hidden');
     }, 5000);
 }
+
+/* ---- Confirm dialog (заменяет нативный confirm) ---- */
+
+let adminConfirmCallback = null;
+
+function adminConfirm(message, onOk) {
+    adminConfirmCallback = onOk;
+    document.getElementById('adminConfirmMessage').textContent = message;
+    document.getElementById('adminConfirmModal').style.display = 'block';
+}
+
+window.closeAdminConfirm = function() {
+    document.getElementById('adminConfirmModal').style.display = 'none';
+    adminConfirmCallback = null;
+};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAdminConfirm();
+});
+
+document.getElementById('adminConfirmOk').addEventListener('click', () => {
+    const cb = adminConfirmCallback;
+    closeAdminConfirm();
+    if (cb) cb();
+});
 
 function loadTelegramSettings() {
     if (!accessToken) {
@@ -712,7 +746,9 @@ function testTelegramConnection() {
     
     const testBtn = document.getElementById('telegramTestBtn');
     testBtn.disabled = true;
-    testBtn.textContent = 'Проверка и сохранение...';
+    testBtn.classList.add('is-loading');
+    const testLabel = testBtn.querySelector('.btn-label');
+    if (testLabel) testLabel.textContent = 'Проверка и сохранение…';
     
     const params = new URLSearchParams();
     params.append('botToken', botToken);
@@ -735,7 +771,8 @@ function testTelegramConnection() {
     })
     .finally(() => {
         testBtn.disabled = false;
-        testBtn.innerHTML = '<img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Проверить и сохранить';
+        testBtn.classList.remove('is-loading');
+        if (testLabel) testLabel.textContent = 'Проверить и сохранить';
     });
 }
 

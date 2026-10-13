@@ -1,239 +1,304 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="utf-8">
-    <title>EjectCloud - Админ панель</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>EjectCloud — Админ панель</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0e1013">
     <link rel="icon" type="image/png" href="images/twitch-logo-transparent.png">
-    <link rel="stylesheet" href="css/icons.css">
+    <script>(function(){try{var t=localStorage.getItem('ec_theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/admin-panel.css">
 </head>
 <body>
 
-<div id="error" class="hidden">
-    <h2>Доступ запрещен</h2>
-    <p>Неверная ссылка или истек срок действия токена.</p>
-    <p>Получите новую ссылку через команду <code>/admin</code> в Telegram боте.</p>
+<div id="error" class="hidden error-screen">
+    <div class="error-card">
+        <div class="error-icon"><svg class="icon" aria-hidden="true"><use href="icons/sprite.svg#i-warning"></use></svg></div>
+        <h2>Доступ запрещен</h2>
+        <p>Неверная ссылка или истек срок действия токена.</p>
+        <p>Получите новую ссылку через команду <code>/admin</code> в Telegram боте.</p>
+    </div>
 </div>
 
-<div id="app" class="hidden">
-    <div class="sidebar">
+<div id="app" class="hidden admin-shell">
+    <aside class="sidebar">
         <div class="sidebar-header">
-            <span class="icon-text"><img class="icon" src="icons/admin.svg" alt="" aria-hidden="true">Админ панель</span>
+            <span class="brand icon-text">
+                <svg class="icon brand-icon" aria-hidden="true"><use href="icons/sprite.svg#i-logo-cloud"></use></svg>
+                EjectCloud <span class="brand-badge">Admin</span>
+            </span>
         </div>
-        <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon-text"><img class="icon" src="icons/dashboard.svg" alt="" aria-hidden="true">Дашборд</span></div>
-        <div class="nav-item" onclick="showTab('users')"><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></div>
-        <div class="nav-item" onclick="showTab('telegram')"><span class="icon-text"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Telegram Bot</span></div>
-    </div>
+
+        <nav class="side-nav" aria-label="Разделы">
+            <button class="nav-item active" onclick="showTab('dashboard')">
+                <svg class="icon"><use href="icons/sprite.svg#i-dashboard"></use></svg>Дашборд
+            </button>
+            <button class="nav-item" onclick="showTab('users')">
+                <svg class="icon"><use href="icons/sprite.svg#i-users"></use></svg>Пользователи
+            </button>
+            <button class="nav-item" onclick="showTab('telegram')">
+                <svg class="icon"><use href="icons/sprite.svg#i-telegram"></use></svg>Telegram Bot
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="admin-user">
+                <span class="avatar" id="whoAvatar">?</span>
+                <span class="admin-user-name" id="who"></span>
+            </div>
+            <button onclick="logout()" class="btn btn-ghost btn-sm admin-logout">
+                <svg class="icon"><use href="icons/sprite.svg#i-logout"></use></svg>Выход
+            </button>
+        </div>
+    </aside>
 
     <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
-    
-    <div class="main-content">
-        <div class="toolbar">
+
+    <main class="main-content">
+        <header class="toolbar">
             <div class="toolbar-left">
-                <button id="menuBtn" onclick="toggleDrawer()" class="secondary menu-button" title="Меню" aria-label="Меню">&#9776;</button>
-                <h2 id="pageTitle">Дашборд</h2>
+                <button id="menuBtn" onclick="toggleDrawer()" class="icon-btn menu-button" title="Меню" aria-label="Меню">
+                    <svg class="icon"><use href="icons/sprite.svg#i-menu"></use></svg>
+                </button>
+                <h1 id="pageTitle" class="page-title">Дашборд</h1>
             </div>
             <div class="toolbar-right">
-                <span id="who"></span>
-                <span id="timer"></span>
-                <button onclick="openUserInterface()" class="primary"><img class="icon" src="icons/home.svg" alt="" aria-hidden="true">Пользовательский интерфейс</button>
-                <button onclick="logout()" class="danger">Выход</button>
+                <button id="themeBtn" class="icon-btn" data-theme-toggle title="Тема"></button>
+                <button onclick="openUserInterface()" class="btn btn-secondary">
+                    <svg class="icon"><use href="icons/sprite.svg#i-home"></use></svg><span>Интерфейс</span>
+                </button>
             </div>
-        </div>
-        
+        </header>
+
         <div class="content-area">
             <!-- Дашборд -->
-            <div id="tab-dashboard">
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/users.svg" alt="" aria-hidden="true">Пользователи</span></h3>
-                        <div class="metric">
-                            <span>Всего пользователей:</span>
-                            <span class="metric-value" id="userCount">-</span>
+            <div id="tab-dashboard" class="tab-panel">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-accent"><svg class="icon"><use href="icons/sprite.svg#i-users"></use></svg></div>
+                        <div class="stat-body">
+                            <div class="stat-label">Пользователей</div>
+                            <div class="stat-value num" id="userCount">—</div>
                         </div>
                     </div>
-                    
-                    <div class="card">
-                        <h3><span class="icon-text"><img class="icon" src="icons/quota.svg" alt="" aria-hidden="true">Квоты пользователей</span></h3>
-                        <div class="metric">
-                            <span>Общая квота:</span>
-                            <span class="metric-value" id="totalQuota">-</span>
+
+                    <div class="stat-card">
+                        <div class="stat-icon"><svg class="icon"><use href="icons/sprite.svg#i-quota"></use></svg></div>
+                        <div class="stat-body">
+                            <div class="stat-label">Всего выделено</div>
+                            <div class="stat-value num" id="totalQuota">—</div>
                         </div>
-                        <div class="metric">
-                            <span>Использовано:</span>
-                            <span class="metric-value" id="totalUsed">-</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="quotaProgress"></div>
+                    </div>
+
+                    <div class="stat-card stat-card-wide">
+                        <div class="stat-icon"><svg class="icon"><use href="icons/sprite.svg#i-storage"></use></svg></div>
+                        <div class="stat-body">
+                            <div class="stat-label">Использовано хранилища</div>
+                            <div class="stat-value num" id="totalUsed">—</div>
+                            <div class="progress-track stat-track"><div class="progress-fill" id="quotaProgress"></div></div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="card">
-                    <h3><span class="icon-text"><img class="icon" src="icons/chart.svg" alt="" aria-hidden="true">Топ пользователей по использованию</span></h3>
+
+                <section class="panel-card">
+                    <div class="panel-head">
+                        <h2 class="panel-title"><svg class="icon"><use href="icons/sprite.svg#i-chart"></use></svg>Топ пользователей по использованию</h2>
+                    </div>
                     <div class="table-wrap">
-                    <table id="topUsersTable">
-                        <thead>
-                            <tr>
-                                <th>Пользователь</th>
-                                <th>Использовано</th>
-                                <th>Квота</th>
-                                <th>%</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                        <table id="topUsersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Пользователь</th>
+                                    <th>Использовано</th>
+                                    <th>Квота</th>
+                                    <th>Заполнено</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                     <div id="topUsersList" class="admin-list"></div>
-                </div>
+                </section>
             </div>
-            
+
             <!-- Пользователи -->
-            <div id="tab-users" class="hidden">
-                <div class="card" style="margin-bottom: 25px;">
-                    <h3>👤 Создать пользователя</h3>
+            <div id="tab-users" class="tab-panel hidden">
+                <section class="panel-card">
+                    <div class="panel-head">
+                        <h2 class="panel-title"><svg class="icon"><use href="icons/sprite.svg#i-add-user"></use></svg>Создать пользователя</h2>
+                    </div>
                     <div class="form-grid">
                         <div class="form-field">
-                            <label class="form-label">Email адрес</label>
-                            <input id="newEmail" type="email" />
+                            <label class="form-label" for="newEmail">Email адрес</label>
+                            <input id="newEmail" type="email" placeholder="user@example.com">
                         </div>
                         <div class="form-field">
-                            <label class="form-label">Nickname</label>
-                            <input id="newNickname" placeholder="folder-name" />
+                            <label class="form-label" for="newNickname">Nickname</label>
+                            <input id="newNickname" type="text" placeholder="folder-name">
                         </div>
                         <div class="form-field">
-                            <label class="form-label">Отображаемое имя</label>
-                            <input id="newDisplayName" />
+                            <label class="form-label" for="newDisplayName">Отображаемое имя</label>
+                            <input id="newDisplayName" type="text" placeholder="Иван Иванов">
                         </div>
                         <div class="form-field">
-                            <label class="form-label">ID в Telegram</label>
-                            <input id="newTelegramId" />
+                            <label class="form-label" for="newTelegramId">ID в Telegram</label>
+                            <input id="newTelegramId" type="text" placeholder="123456789">
                         </div>
                         <div class="form-field">
-                            <label class="form-label">Квота (MB)</label>
-                            <input id="newQuota" type="number" value="1024" />
+                            <label class="form-label" for="newQuota">Квота (MB)</label>
+                            <input id="newQuota" type="number" value="1024" min="1">
                         </div>
-                        <button onclick="createUser()" class="primary"><img class="icon" src="icons/add-user.svg" alt="" aria-hidden="true">Создать</button>
+                        <div class="form-field form-field-action">
+                            <button onclick="createUser()" class="btn btn-primary"><svg class="icon"><use href="icons/sprite.svg#i-add-user"></use></svg>Создать</button>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="card">
-                    <h3>Управление пользователями</h3>
+                </section>
+
+                <section class="panel-card">
+                    <div class="panel-head">
+                        <h2 class="panel-title"><svg class="icon"><use href="icons/sprite.svg#i-users"></use></svg>Управление пользователями</h2>
+                    </div>
                     <div class="table-wrap">
-                    <table id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>Имя</th>
-                                <th>Nickname</th>
-                                <th>Email</th>
-                                <th>Telegram ID</th>
-                                <th>Квота</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                        <table id="usersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Nickname</th>
+                                    <th>Email</th>
+                                    <th>Telegram ID</th>
+                                    <th>Квота</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                     <div id="usersList" class="admin-list"></div>
-                </div>
+                </section>
             </div>
-            
+
             <!-- Telegram Bot -->
-            <div id="tab-telegram" class="hidden">
-                <div class="card">
-                    <h3><span class="icon-text"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Настройка Telegram Bot</span></h3>
-                    <div style="display: grid; gap: 20px;">
-                        <div class="form-field">
-                            <label class="form-label">Bot Token</label>
-                            <input id="telegramBotToken" type="password" placeholder="Введите токен бота от @BotFather" />
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label">Chat ID админа</label>
-                            <input id="telegramAdminChatId" type="text" placeholder="Цифровой ID чата (можно узнать у @userinfobot)" />
-                        </div>
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                            <button onclick="testTelegramConnection()" class="primary" id="telegramTestBtn"><img class="icon" src="icons/telegram.svg" alt="" aria-hidden="true">Проверить и сохранить</button>
-                        </div>
-                        <div id="telegramStatus" class="hidden" style="padding: 15px; border-radius: 10px; font-weight: 500;"></div>
+            <div id="tab-telegram" class="tab-panel hidden">
+                <section class="panel-card">
+                    <div class="panel-head">
+                        <h2 class="panel-title"><svg class="icon"><use href="icons/sprite.svg#i-telegram"></use></svg>Настройка Telegram Bot</h2>
                     </div>
-                </div>
-                
-                <div class="card" style="margin-top: 25px;">
-                    <h3><span class="icon-text"><img class="icon" src="icons/info.svg" alt="" aria-hidden="true">Как получить данные</span></h3>
-                    <div style="line-height: 1.8; color: #555;">
+                    <div class="tg-settings">
+                        <div class="form-field">
+                            <label class="form-label" for="telegramBotToken">Bot Token</label>
+                            <input id="telegramBotToken" type="password" placeholder="Введите токен бота от @BotFather" autocomplete="off">
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label" for="telegramAdminChatId">Chat ID админа</label>
+                            <input id="telegramAdminChatId" type="text" placeholder="Цифровой ID чата (можно узнать у @userinfobot)">
+                        </div>
+                        <div class="tg-actions">
+                            <button onclick="testTelegramConnection()" class="btn btn-primary" id="telegramTestBtn">
+                                <svg class="icon"><use href="icons/sprite.svg#i-telegram"></use></svg><span class="btn-label">Проверить и сохранить</span>
+                            </button>
+                        </div>
+                        <div id="telegramStatus" class="tg-status hidden"></div>
+                    </div>
+                </section>
+
+                <section class="panel-card">
+                    <div class="panel-head">
+                        <h2 class="panel-title"><svg class="icon"><use href="icons/sprite.svg#i-info"></use></svg>Как получить данные</h2>
+                    </div>
+                    <div class="help-text">
                         <p><b>1. Получение Bot Token:</b></p>
                         <p>• Откройте Telegram и найдите бота <code>@BotFather</code></p>
                         <p>• Отправьте команду <code>/newbot</code></p>
                         <p>• Следуйте инструкциям и скопируйте полученный токен</p>
-                        <p style="margin-top: 15px;"><b>2. Получение Chat ID:</b></p>
-                        <p>• Найдйте бота <code>@userinfobot</code> в Telegram</p>
+                        <p><b>2. Получение Chat ID:</b></p>
+                        <p>• Найдите бота <code>@userinfobot</code> в Telegram</p>
                         <p>• Отправьте любое сообщение</p>
                         <p>• Скопируйте ваш <code>ID</code> (число) и вставьте в поле выше</p>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <!-- Модальное окно редактирования пользователя -->
 <div id="editUserModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-title"><span class="icon-text"><img class="icon" src="icons/edit.svg" alt="" aria-hidden="true">Редактирование пользователя</span></div>
-            <span class="close" onclick="closeEditUserModal()">&times;</span>
+            <div class="modal-title"><span class="title-icon"><svg class="icon"><use href="icons/sprite.svg#i-edit"></use></svg></span>Редактирование пользователя</div>
+            <button class="icon-btn modal-close" onclick="closeEditUserModal()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
         <div class="modal-body">
-            <div style="display: grid; gap: 20px;">
+            <div class="form-grid form-grid-modal">
                 <div class="form-field">
-                    <label class="form-label">Nickname</label>
-                    <input id="editNickname" />
+                    <label class="form-label" for="editNickname">Nickname</label>
+                    <input id="editNickname" type="text">
                 </div>
                 <div class="form-field">
-                    <label class="form-label">Email адрес</label>
-                    <input id="editEmail" type="email" />
+                    <label class="form-label" for="editEmail">Email адрес</label>
+                    <input id="editEmail" type="email">
                 </div>
                 <div class="form-field">
-                    <label class="form-label">Отображаемое имя</label>
-                    <input id="editDisplayName" />
+                    <label class="form-label" for="editDisplayName">Отображаемое имя</label>
+                    <input id="editDisplayName" type="text">
                 </div>
                 <div class="form-field">
-                    <label class="form-label">ID в Telegram</label>
-                    <input id="editTelegramId" />
+                    <label class="form-label" for="editTelegramId">ID в Telegram</label>
+                    <input id="editTelegramId" type="text">
                 </div>
                 <div class="form-field">
-                    <label class="form-label">Квота (MB)</label>
-                    <input id="editQuota" type="number" />
+                    <label class="form-label" for="editQuota">Квота (MB)</label>
+                    <input id="editQuota" type="number" min="1">
                 </div>
             </div>
             <div class="modal-buttons">
-                <button onclick="closeEditUserModal()" class="secondary">Отмена</button>
-                <button onclick="saveUserEdit()" class="primary">Сохранить</button>
+                <button onclick="closeEditUserModal()" class="btn btn-ghost">Отмена</button>
+                <button onclick="saveUserEdit()" class="btn btn-primary">Сохранить</button>
             </div>
         </div>
     </div>
 </div>
 
-<script src="js/pages/admin-panel.js"></script>
+<!-- Подтверждение -->
+<div id="adminConfirmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title"><span class="title-icon title-icon-danger"><svg class="icon"><use href="icons/sprite.svg#i-warning"></use></svg></span>Подтверждение</div>
+            <button class="icon-btn modal-close" onclick="closeAdminConfirm()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
+        </div>
+        <div class="modal-body">
+            <p id="adminConfirmMessage" class="confirm-message"></p>
+            <div class="modal-buttons">
+                <button onclick="closeAdminConfirm()" class="btn btn-ghost">Отмена</button>
+                <button id="adminConfirmOk" class="btn btn-danger">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Центр задач -->
 <div id="taskBackdrop" class="task-backdrop hidden"></div>
 <button id="taskBubble" class="task-bubble" title="Задачи">
     <span id="taskBubbleFill" class="task-bubble-fill" aria-hidden="true"></span>
-    <span id="taskBubblePct" class="pct"></span>
+    <span id="taskBubblePct" class="pct num"></span>
 </button>
 <aside id="taskDrawer" class="task-drawer" aria-label="Задачи">
     <div class="task-drawer-header">
-        <div class="task-drawer-title">Задачи</div>
+        <div class="task-drawer-title"><svg class="icon"><use href="icons/sprite.svg#i-tasks"></use></svg>Задачи</div>
         <div class="task-controls">
-            <button id="taskClearCompleted" class="secondary" title="Очистить завершенные">Очистить</button>
-            <button class="secondary" onclick="TaskCenter && TaskCenter.closeDrawer && TaskCenter.closeDrawer()" title="Закрыть">×</button>
+            <button id="taskClearCompleted" class="btn btn-ghost btn-sm" title="Очистить завершенные">Очистить</button>
+            <button class="icon-btn" onclick="TaskCenter && TaskCenter.closeDrawer && TaskCenter.closeDrawer()" title="Закрыть"><svg class="icon"><use href="icons/sprite.svg#i-x"></use></svg></button>
         </div>
     </div>
     <div id="taskList" class="task-drawer-body"></div>
 </aside>
 
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/task-center.js"></script>
+<script src="js/pages/admin-panel.js"></script>
 </body>
 </html>

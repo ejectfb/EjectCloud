@@ -202,7 +202,7 @@
             }
             window.location.href = returnTo;
         });
-        delBtn.innerHTML = '<img class="icon" src="icons/trash.svg" alt="" aria-hidden="true">';
+        delBtn.innerHTML = (window.EcUtil && EcUtil.icon) ? EcUtil.icon('trash') : '🗑';
         delBtn.title = 'Удалить';
         $actions.appendChild(delBtn);
     }
